@@ -1,0 +1,4 @@
+/target/
+/.build-tools/
+/application-local.properties
+/media/

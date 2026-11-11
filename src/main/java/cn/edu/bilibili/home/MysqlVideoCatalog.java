@@ -1,0 +1,133 @@
+package cn.edu.bilibili.home;
+
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.temporal.TemporalAdjusters;
+import java.util.List;
+import java.util.Optional;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+
+@Repository
+class MysqlVideoCatalog {
+    private static final String PUBLIC_VIDEOS = """
+            SELECT v.VideoID, v.VideoTitle, v.VideoDescription, u.Name, v.CategoryID, c.CategoryName,
+                   v.VideoDuration, COALESCE(p.PlayCount, 0) AS Plays, v.UploadTime,
+                   v.CoverUrl, v.VideoContent, co.CompilationTitle,
+                   (SELECT COUNT(*) FROM danmakutable d
+                     WHERE d.VideoID = v.VideoID AND d.DanmakuStatus = 'active') AS Danmaku
+            FROM videotable v
+            JOIN usertable u ON u.UID = v.UID
+            JOIN videocategorytable c ON c.CategoryID = v.CategoryID
+            LEFT JOIN playcounttable p ON p.VideoID = v.VideoID
+            LEFT JOIN compilationtable co ON co.CompilationID = v.CompilationID
+            WHERE v.VideoStatus = 'published' AND v.VisibleStatus = 'public'
+            """;
+    private static final String VIDEO_TAGS = """
+            FROM videotagtable vt JOIN tagtable t ON t.TagID = vt.TagID
+            """;
+    private final JdbcClient jdbc;
+
+    MysqlVideoCatalog(JdbcClient jdbc) {
+        this.jdbc = jdbc;
+    }
+
+    List<Category> categories() {
+        return jdbc.sql("SELECT CategoryID, CategoryName FROM videocategorytable ORDER BY CategoryID")
+                .query((rs, row) -> new Category(rs.getString(1), rs.getString(2))).list();
+    }
+
+    List<Video> findVideos(Query query) {
+        StringBuilder sql = new StringBuilder(PUBLIC_VIDEOS);
+        if (query.categoryId() != null) {
+            sql.append(" AND v.CategoryID = CAST(:category AS UNSIGNED)");
+        }
+        if (!query.keyword().isEmpty()) {
+            sql.append("""
+                     AND (LOCATE(:q, v.VideoTitle) > 0 OR LOCATE(:q, v.VideoDescription) > 0
+                          OR LOCATE(:q, u.Name) > 0 OR EXISTS (
+                              SELECT 1
+                    """).append(VIDEO_TAGS).append(" WHERE vt.VideoID = v.VideoID AND LOCATE(:q, t.TagName) > 0))");
+        }
+        if (!query.tag().isEmpty()) {
+            sql.append(" AND EXISTS (SELECT 1 ").append(VIDEO_TAGS)
+                    .append(" WHERE vt.VideoID = v.VideoID AND t.TagName = :tag)");
+        }
+        sql.append(switch (query.sort()) {
+            case latest -> " ORDER BY v.UploadTime DESC, v.VideoID DESC";
+            case popular -> " ORDER BY Plays DESC, v.VideoID ASC";
+            case recommend -> " ORDER BY COALESCE(v.VideoContent = :featured, 0) DESC, CRC32(CONCAT(v.VideoID, ':', :day)), v.VideoID ASC";
+        }).append(" LIMIT :limit OFFSET :offset");
+        var statement = jdbc.sql(sql.toString()).param("limit", query.limit()).param("offset", query.offset());
+        if (query.categoryId() != null) {
+            statement.param("category", query.categoryId());
+        }
+        if (!query.keyword().isEmpty()) {
+            statement.param("q", query.keyword());
+        }
+        if (!query.tag().isEmpty()) {
+            statement.param("tag", query.tag());
+        }
+        if (query.sort() == Sort.recommend) {
+            statement.param("day", today().toString()).param("featured", VideoController.EXPERIMENT);
+        }
+        return statement.query(MysqlVideoCatalog::readVideo).list();
+    }
+
+    Optional<Video> findVideo(String id) {
+        return jdbc.sql(PUBLIC_VIDEOS + " AND v.VideoID = CAST(:id AS UNSIGNED)").param("id", id)
+                .query(MysqlVideoCatalog::readVideo).optional();
+    }
+
+    List<String> tags(String id) {
+        return jdbc.sql("SELECT t.TagName " + VIDEO_TAGS
+                        + " WHERE vt.VideoID = CAST(:id AS UNSIGNED) ORDER BY t.TagID")
+                .param("id", id).query(String.class).list();
+    }
+
+    List<Rank> weeklyRank(String categoryId, int limit) {
+        if (categoryId == null) {
+            return jdbc.sql("CALL sp_get_weekly_play_rank(:limit)").param("limit", limit)
+                    .query(MysqlVideoCatalog::readRank).list();
+        }
+        var monday = today().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        return jdbc.sql("""
+                SELECT v.VideoID, v.VideoTitle, COUNT(*) AS WeeklyPlayCount,
+                       DENSE_RANK() OVER (ORDER BY COUNT(*) DESC) AS RankNo
+                FROM videoplaysessiontable s JOIN videotable v ON v.VideoID = s.VideoID
+                WHERE s.CountTime >= :start AND s.CountTime < :end
+                  AND v.VideoStatus = 'published' AND v.VisibleStatus = 'public'
+                  AND v.CategoryID = CAST(:category AS UNSIGNED)
+                GROUP BY v.VideoID, v.VideoTitle
+                ORDER BY WeeklyPlayCount DESC, v.VideoID ASC LIMIT :limit
+                """).param("start", monday.atStartOfDay()).param("end", monday.plusWeeks(1).atStartOfDay())
+                .param("category", categoryId).param("limit", limit).query(MysqlVideoCatalog::readRank).list();
+    }
+
+    private static Video readVideo(java.sql.ResultSet rs, int row) throws java.sql.SQLException {
+        return new Video(rs.getString("VideoID"), rs.getString("VideoTitle"), rs.getString("VideoDescription"),
+                rs.getString("Name"), rs.getString("CategoryID"), rs.getString("CategoryName"),
+                rs.getInt("VideoDuration"), rs.getLong("Plays"), rs.getLong("Danmaku"),
+                rs.getObject("UploadTime", LocalDateTime.class), rs.getString("CoverUrl"),
+                rs.getString("VideoContent"), rs.getString("CompilationTitle"));
+    }
+
+    private static Rank readRank(java.sql.ResultSet rs, int row) throws java.sql.SQLException {
+        return new Rank(rs.getString("VideoID"), rs.getString("VideoTitle"),
+                rs.getLong("WeeklyPlayCount"), rs.getLong("RankNo"));
+    }
+
+    private static LocalDate today() {
+        return LocalDate.now(ZoneId.of("Asia/Shanghai"));
+    }
+
+    enum Sort { recommend, latest, popular }
+    record Category(String id, String name) {}
+    record Video(String id, String title, String description, String author, String categoryId,
+                 String category, int duration, long plays, long danmaku, LocalDateTime publishedAt,
+                 String coverPath, String videoPath, String compilation) {}
+    record Query(String categoryId, String keyword, String tag, Sort sort, int offset, int limit) {}
+    record Rank(String id, String title, long plays, long rank) {}
+}
