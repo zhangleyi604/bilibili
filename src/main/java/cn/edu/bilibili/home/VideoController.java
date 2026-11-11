@@ -25,18 +25,14 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 @RestController
 @RequestMapping("/api")
 class VideoController {
-    static final String EXPERIMENT = "media/videos/20260619_035713.mp4";
     private static final String EXPERIMENT_COVER = "media/covers/experiment-1.jpg";
 
     private final MysqlVideoCatalog catalog;
     private final Path mediaRoot;
-    private final Path localVideo;
 
-    VideoController(MysqlVideoCatalog catalog, @Value("${app.media-root}") String mediaRoot,
-                    @Value("${app.local-video}") String localVideo) {
+    VideoController(MysqlVideoCatalog catalog, @Value("${app.media-root}") String mediaRoot) {
         this.catalog = catalog;
         this.mediaRoot = Path.of(mediaRoot).toAbsolutePath().normalize();
-        this.localVideo = localVideo.isBlank() ? null : Path.of(localVideo);
     }
 
     @GetMapping("/categories")
@@ -86,8 +82,8 @@ class VideoController {
     @GetMapping("/videos/{id}/stream")
     ResponseEntity<Resource> stream(@PathVariable String id) {
         var path = find(id).videoPath();
-        Path file = EXPERIMENT.equals(path) ? localVideo : underMediaRoot(path, "media/videos/");
-        if (file == null || !Files.isRegularFile(file) || !file.getFileName().toString().endsWith(".mp4")) {
+        Path file = underMediaRoot(path, "media/videos/");
+        if (!file.getFileName().toString().endsWith(".mp4")) {
             throw missingMedia();
         }
         return fileResponse(file, MediaType.valueOf("video/mp4"));

@@ -17,12 +17,6 @@ $java = if ($env:JAVA_HOME) { Join-Path $env:JAVA_HOME 'bin/java.exe' } else { '
 
 $env:BILI_DB_USER = $DbUser
 $env:BILI_PORT = "$Port"
-if (-not $env:BILI_MEDIA_ROOT) {
-    $sampleMedia = Join-Path (Split-Path -Parent $PSScriptRoot) 'MySQL严格Word版_v5'
-    if (Test-Path -LiteralPath (Join-Path $sampleMedia 'media')) {
-        $env:BILI_MEDIA_ROOT = $sampleMedia
-    }
-}
 $askedForPassword = -not (Test-Path Env:BILI_DB_PASSWORD)
 if ($askedForPassword) {
     $secure = Read-Host '请输入 MySQL 密码（输入不会显示）' -AsSecureString

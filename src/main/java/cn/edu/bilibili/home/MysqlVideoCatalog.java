@@ -71,7 +71,7 @@ class MysqlVideoCatalog {
             statement.param("tag", query.tag());
         }
         if (query.sort() == Sort.recommend) {
-            statement.param("day", today().toString()).param("featured", VideoController.EXPERIMENT);
+            statement.param("day", today().toString()).param("featured", "media/videos/20260619_035713.mp4");
         }
         return statement.query(MysqlVideoCatalog::readVideo).list();
     }

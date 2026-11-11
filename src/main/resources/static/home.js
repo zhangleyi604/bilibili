@@ -61,12 +61,8 @@ function attachCover(img, url, category) {
   img.src = url;
 }
 
-function videoLink(id, className) {
-  return link('/video/' + encodeURIComponent(id), null, className);
-}
-
 function card(video) {
-  const link = videoLink(video.id, 'card');
+  const a = link('/video/' + encodeURIComponent(video.id), null, 'card');
   const cover = node('div', 'card-cover');
   const img = node('img');
   img.alt = '';
@@ -83,8 +79,8 @@ function card(video) {
   const date = video.publishedAt ? ' · ' + video.publishedAt.slice(5, 10) : '';
   const byline = node('p', 'card-byline');
   byline.append(node('span', 'up', 'UP'), video.author + date);
-  link.append(cover, title, byline);
-  return link;
+  a.append(cover, title, byline);
+  return a;
 }
 
 function link(href, label, className) {
@@ -138,7 +134,7 @@ async function loadFeed(requestedPage = page) {
       const results = await api('/ranks/weekly?' + query);
       el('rank-list').replaceChildren(...results.map((entry) => {
         const li = node('li');
-        const a = videoLink(entry.id);
+        const a = link('/video/' + encodeURIComponent(entry.id));
         a.append(node('strong', '', entry.rank), node('span', '', entry.title),
           node('small', '', shortCount(entry.plays) + ' 次有效播放'));
         li.append(a);
@@ -184,8 +180,18 @@ async function loadVideo() {
       ...tags.map((tag) => link('/search?tag=' + encodeURIComponent(tag), tag)));
     player.poster = video.coverUrl;
     player.onerror = () => error('视频文件暂时不可用');
-    if (video.streamUrl) player.src = video.streamUrl;
-    else error('暂无视频文件');
+    if (video.streamUrl) {
+      player.src = video.streamUrl;
+      player.play().catch(async (e) => {
+        if (e.name !== 'NotAllowedError') return;
+        player.muted = true;
+        try {
+          await player.play();
+        } catch {
+          error('请点击播放按钮开始播放');
+        }
+      });
+    } else error('暂无视频文件');
   } catch (e) {
     el('video-title').textContent = e.message === '404' ? '视频不存在或已下架' : '视频加载失败';
     player.hidden = true;

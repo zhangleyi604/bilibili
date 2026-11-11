@@ -62,8 +62,7 @@ loginPopup.addEventListener('focusin', () => clearTimeout(popupTimer));
 loginPopup.addEventListener('focusout', (event) => {
   if (!loginPopup.contains(event.relatedTarget)) delayHidePopup();
 });
-el('popover-login').onclick = () => openLogin();
-el('upload-actions').querySelectorAll('button').forEach((button) => {
+document.querySelectorAll('#popover-login, #upload-actions button').forEach((button) => {
   button.onclick = () => openLogin();
 });
 el('close-login').onclick = () => loginDialog.close();
@@ -91,7 +90,7 @@ function setMascots(coverEyes) {
   document.querySelector('.mascot-left').src = '/assets/login-22-' + state + '.png';
   document.querySelector('.mascot-right').src = '/assets/login-33-' + state + '.png';
 }
-password.addEventListener('focus', () => setMascots(password.type === 'password'));
+password.addEventListener('focus', () => setMascots(true));
 password.addEventListener('blur', () => setMascots(false));
 el('toggle-password').onclick = (event) => {
   const show = password.type === 'password';
@@ -99,7 +98,6 @@ el('toggle-password').onclick = (event) => {
   event.currentTarget.textContent = show ? '隐藏' : '显示';
   event.currentTarget.setAttribute('aria-pressed', String(show));
   password.focus();
-  setMascots(!show);
 };
 loginForm.addEventListener('submit', (event) => {
   event.preventDefault();
