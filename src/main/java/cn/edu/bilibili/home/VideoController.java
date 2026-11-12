@@ -23,6 +23,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
 @RestController
 @RequestMapping("/api")
@@ -89,6 +90,14 @@ class VideoController {
     VideoDetail detail(@PathVariable String id) {
         var video = find(id);
         return new VideoDetail(card(video), video.description(), video.compilation(), catalog.tags(id));
+    }
+
+    @GetMapping("/videos/{id}/comments")
+    MysqlVideoCatalog.CommentPage comments(@PathVariable String id, @RequestParam(defaultValue="hot") String sort) {
+        find(id);
+        if (!sort.equals("hot") && !sort.equals("latest")) throw new ResponseStatusException(BAD_REQUEST, "无效的评论排序");
+        if (sort.equals("latest")) throw new ResponseStatusException(UNAUTHORIZED, "登录后查看最新评论");
+        return catalog.comments(id, false);
     }
 
     @PostMapping("/videos/{id}/viewers")

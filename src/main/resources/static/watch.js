@@ -54,11 +54,11 @@
     if (!player.paused) return player.pause();
     try { await player.play(); } catch (error) { if (error.name !== 'AbortError') notice('请点击播放；若无法播放，请检查视频文件'); }
   }
-  el('play-toggle').onclick = play; el('big-play').onclick = play; player.onclick = play;
+  el('play-toggle').onclick = play; el('big-play').onclick = play; el('mini-play-toggle').onclick = play; player.onclick = play;
   el('trial-start').onclick = play;
   el('close-trial').onclick = () => el('trial-tip').hidden = true;
-  player.addEventListener('play', () => { if (watched >= 30) return gate(); lastTick = performance.now(); el('play-toggle').dataset.playing = 'true'; el('big-play').hidden = true; shell.classList.remove('paused-danmaku'); });
-  player.addEventListener('pause', () => { el('play-toggle').dataset.playing = 'false'; el('big-play').hidden = false; shell.classList.add('paused-danmaku'); });
+  player.addEventListener('play', () => { if (watched >= 30) return gate(); lastTick = performance.now(); shell.dataset.playing = 'true'; el('play-toggle').dataset.playing = 'true'; el('big-play').hidden = true; shell.classList.remove('paused-danmaku'); });
+  player.addEventListener('pause', () => { shell.dataset.playing = 'false'; el('play-toggle').dataset.playing = 'false'; el('big-play').hidden = false; shell.classList.add('paused-danmaku'); });
   // Count elapsed playing time, never the timeline position or the seek distance.
   const timer = setInterval(() => {
     const now = performance.now(), elapsed = (now - lastTick) / 1000; lastTick = now;
@@ -213,7 +213,9 @@
       collectionNext = collection.items[index + 1] || null; collectionPrevious = collection.items[index - 1] || null;
     } else el('video-collection').hidden = true;
   } catch { el('video-collection').hidden = true; }
-  try { const result = await api('/videos?size=10'); const related = result.items.filter(v => String(v.id) !== id).slice(0,8); nextVideo = related[0]; el('related-videos').replaceChildren(...related.map(card)); } catch { el('related-videos').textContent = '暂无推荐视频'; }
+  setupWatchComments(id);
+  setupWatchScroll(player, shell);
+  try { const result = await api('/videos?size=40'); const related = result.items.filter(v => String(v.id) !== id).slice(0,8); nextVideo = related[0]; el('related-videos').replaceChildren(...related.map(card)); setupRelatedExpansion(result.items.filter(v => String(v.id) !== id)); } catch { el('related-videos').textContent = '暂无推荐视频'; }
   el('fullscreen-prev').onclick = () => { if (collectionPrevious) location.assign('/video/' + collectionPrevious.id); else notice('没有上一集'); };
   el('fullscreen-next').onclick = () => { if (collectionNext || nextVideo) location.assign('/video/' + (collectionNext || nextVideo).id); else notice('没有下一集'); };
   player.addEventListener('ended', () => { if (el('autoplay-next').checked && (collectionNext || nextVideo) && watched < 30) location.assign('/video/' + (collectionNext || nextVideo).id); });

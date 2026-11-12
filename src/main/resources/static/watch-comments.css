@@ -1,0 +1,49 @@
+﻿.video-comments { margin-top:24px;border-top:1px solid #e3e5e7;padding:26px 0 24px;font-family:"Microsoft YaHei",sans-serif; }
+.comments-heading { display:flex;align-items:center;gap:14px;margin-bottom:24px; }
+.comments-heading h2 { font-size:20px;font-weight:500;margin:0 22px 0 0; }
+#comment-total { font-size:14px;color:#9499a0;margin-left:5px;font-weight:400; }
+.comments-heading button { border:0;background:none;font-size:14px;color:#9499a0;padding:0;cursor:pointer; }
+.comments-heading button[aria-pressed=true] { color:#18191c; }
+.comments-divider { color:#9499a0; }
+.comment-compose { display:flex;gap:18px;align-items:center;margin-bottom:34px; }
+.guest-avatar { display:grid;place-items:center;width:48px;height:48px;flex-shrink:0;border-radius:50%;background:#e6e8f0;color:#b9bdc7;font-size:28px; }
+.comment-compose>button { flex:1;border:0;background:#f1f2f3;border-radius:6px;height:64px;font-size:13px;color:#9499a0;cursor:pointer; }
+.comment-compose b { display:inline-block;padding:6px 10px;background:#00aeec;color:white;border-radius:4px;font-weight:400;margin:0 3px; }
+.comment-entry { display:flex;gap:20px;padding:0 0 24px;margin:0 0 24px; }
+.comment-avatar { width:40px;height:40px;flex:0 0 40px;border-radius:50%;overflow:hidden;background:#f1f2f3;display:grid;place-items:center;color:#9499a0;font-size:18px; }
+.comment-avatar img { width:100%;height:100%;object-fit:cover; }
+.comment-body { flex:1;min-width:0;border-bottom:1px solid #e3e5e7;padding-bottom:20px; }
+.comment-byline { display:flex;align-items:center;gap:8px;color:#61666d;font-size:13px;line-height:24px; }
+.comment-byline a { color:inherit; }.comment-byline a:hover { color:#00aeec; }
+.comment-level { font-size:10px;font-weight:600;color:#fb7299; }
+.comment-content { font-size:15px;color:#18191c;line-height:1.9;white-space:pre-wrap;overflow-wrap:anywhere;margin:10px 0; }
+.comment-actions { display:flex;align-items:center;gap:22px;font-size:12px;color:#9499a0; }
+.comment-actions button { display:inline-flex;align-items:center;gap:5px;border:0;background:none;padding:0;color:inherit;font-size:12px;cursor:pointer; }
+.comment-actions svg { width:16px;height:16px;fill:none; }.comment-dislike svg { transform:rotate(180deg); }
+.comment-actions button:hover { color:#00aeec; }.comment-actions .comment-options { margin-left:auto;opacity:0; }.comment-entry:hover .comment-options,.comment-reply:hover .comment-options,.comment-options:focus-visible { opacity:1; }
+.comment-replies { margin-top:16px; }.comment-reply { display:flex;gap:10px;margin:14px 0; }.comment-reply .comment-avatar { width:24px;height:24px;flex-basis:24px;font-size:12px; }.comment-reply .comment-body { border:0;padding:0; }.comment-reply .comment-content { margin:2px 0 8px;font-size:14px; }.comment-reply .comment-byline { font-size:12px; }
+.comment-view-replies { border:0;background:none;color:#9499a0;font-size:13px;padding:0;cursor:pointer; }.comment-view-replies:hover { color:#00aeec; }
+.comments-more { width:calc(100% - 60px);margin-left:60px;padding:16px;background:#dff6fd;color:#00aeec;border:0;border-radius:5px;cursor:pointer;font-size:14px; }.comments-empty { color:#9499a0;text-align:center;padding:20px; }
+.watch-layout>.watch-main { position:sticky;top:min(76px,calc(100vh - var(--watch-main-height, 1600px) - 20px));align-self:start; }
+#related-extra { display:grid;gap:18px;margin-top:18px; }#related-extra .card { display:grid;grid-template-columns:140px minmax(0,1fr);column-gap:10px; }#related-extra .card-video { display:contents; }#related-extra .card-cover { grid-row:span 2; }#related-extra .card-title { font-size:14px;margin:0; }#related-extra .card-byline { margin-top:8px; }#related-extra .card-stats span { display:none; }
+.related-expand { width:100%;background:#f1f2f3;border:0;border-radius:5px;padding:12px;margin-top:18px;color:#18191c;font-size:13px;cursor:pointer; }.related-expand:hover { background:#e3e5e7; }
+#player-shell-home { min-width:0; }.player-shell>video { display:block;width:100%;height:100%;object-fit:contain;background:#000; }
+.mini-drag-handle,.mini-close { display:none; }
+.player-shell.scroll-mini { position:fixed;z-index:80;width:min(360px,30vw);height:auto;aspect-ratio:16/9;right:74px;bottom:28px;box-shadow:0 4px 20px #0004;border-radius:4px;container-type:inline-size;font-family:"Microsoft YaHei",sans-serif; }
+.scroll-mini .player-follow,.scroll-mini .player-tools,.scroll-mini .trial-tip,.scroll-mini .control-row,.scroll-mini .fullscreen-title { display:none; }
+.scroll-mini .player-controls { padding:0 4px 3px; }.scroll-mini .seek { margin:0; }.scroll-mini .big-play { bottom:35%;right:42%; }.scroll-mini .big-play .watch-icon { width:50px;height:54px; }
+.player-shell.scroll-mini .mini-close { position:absolute;right:7px;top:4px;z-index:10;display:block;font-size:24px;line-height:1;color:#fff;background:#0004;border:0;cursor:pointer;padding:2px 5px; }
+.scroll-mini .mini-drag-handle { position:absolute;left:0;right:42px;top:0;height:30px;display:block;z-index:9;cursor:move;touch-action:none; }
+.scroll-mini .trial-ended { font-size:12px;gap:10px;padding:12px;text-align:center; }.scroll-mini .trial-ended button { font-size:12px;padding:5px 9px; }
+@media(max-width:1000px){#related-extra .card{grid-template-columns:110px minmax(0,1fr);}.comment-actions{gap:14px;}}
+@media(max-width:800px){.watch-layout>.watch-main{position:static;}.comment-entry{gap:12px;}.comment-actions{gap:12px;flex-wrap:wrap;}.comments-more{width:100%;margin-left:0;}.comment-content{font-size:14px;}}
+
+.comment-compose { width:96%; }
+.player-shell .mini-play-toggle { display:none; }
+.player-shell.scroll-mini .big-play { display:none; }
+.player-shell.scroll-mini .mini-play-toggle { position:absolute;display:flex;align-items:center;justify-content:center;left:50%;top:50%;transform:translate(-50%,-50%);z-index:8;padding:0;border:0;background:none;color:#fff;opacity:0;pointer-events:none;transition:opacity .12s ease; }
+.player-shell.scroll-mini:hover .mini-play-toggle,.player-shell.scroll-mini:focus-within .mini-play-toggle { opacity:.86;pointer-events:auto; }
+.player-shell.scroll-mini .mini-play-toggle .watch-icon { width:66px;height:70px;filter:drop-shadow(0 2px 4px #0003); }
+.mini-play-toggle .mini-when-playing,.scroll-mini[data-playing="true"] .mini-play-toggle .mini-when-paused { display:none; }
+.scroll-mini[data-playing="true"] .mini-play-toggle .mini-when-playing { display:block; }
+@media(max-width:800px){.comment-compose{width:100%;}}

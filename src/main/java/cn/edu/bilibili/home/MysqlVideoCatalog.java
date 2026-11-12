@@ -148,6 +148,51 @@ class MysqlVideoCatalog {
                 """).param("id", videoId).query(MysqlVideoCatalog::readVideo).list();
     }
 
+    CommentPage comments(String videoId, boolean latest) {
+        long total = jdbc.sql("SELECT COUNT(*) FROM commenttable WHERE VideoID=CAST(:id AS UNSIGNED) AND CommentStatus='active'")
+                .param("id", videoId).query(Long.class).single();
+        String order = latest ? "c.CommentTime DESC, c.CommentID DESC" : "Likes DESC, c.CommentTime DESC, c.CommentID DESC";
+        var comments = jdbc.sql("""
+                SELECT c.CommentID, c.UID, u.Name, l.LevelName, c.Content, c.CommentTime,
+                  (SELECT COUNT(*) FROM liketable k WHERE k.LikeTargetType=2 AND k.LikeTargetID=c.CommentID) AS Likes
+                FROM commenttable c JOIN usertable u ON u.UID=c.UID
+                LEFT JOIN userleveltable l ON l.LevelID=u.LevelID
+                WHERE c.VideoID=CAST(:id AS UNSIGNED) AND c.CommentStatus='active' ORDER BY
+                """ + order + " LIMIT 2").param("id", videoId).query((rs, row) -> {
+                    var replies = previewReplies(rs.getString("CommentID"));
+                    return new CommentPreview(rs.getString("CommentID"), rs.getString("UID"), rs.getString("Name"),
+                        rs.getString("LevelName"), rs.getString("Content"), rs.getObject("CommentTime", LocalDateTime.class),
+                        rs.getLong("Likes"), replies.isEmpty() ? 0 : replies.get(0).total(), replies);
+                }).list();
+        return new CommentPage(total, comments);
+    }
+
+    private List<ReplyPreview> previewReplies(String commentId) {
+        return jdbc.sql("""
+                WITH RECURSIVE thread AS (
+                  SELECT r.*, 1 AS depth FROM replytable r
+                  WHERE r.ReplyTargetType=1 AND r.ReplyTargetID=CAST(:id AS UNSIGNED) AND r.ReplyStatus='active'
+                  UNION ALL
+                  SELECT r.*, t.depth+1 FROM replytable r JOIN thread t
+                    ON r.ReplyTargetType=0 AND r.ReplyTargetID=t.ReplyID
+                  WHERE r.ReplyStatus='active' AND t.depth<30
+                )
+                SELECT t.ReplyID, t.UID, u.Name, l.LevelName, t.Content, t.ReplyTime,
+                  (SELECT COUNT(*) FROM liketable k WHERE k.LikeTargetType=3 AND k.LikeTargetID=t.ReplyID) AS Likes,
+                  COUNT(*) OVER() AS Total FROM thread t JOIN usertable u ON u.UID=t.UID
+                LEFT JOIN userleveltable l ON l.LevelID=u.LevelID
+                ORDER BY t.ReplyTime, t.ReplyID LIMIT 2
+                """).param("id", commentId).query((rs, row) -> new ReplyPreview(rs.getString("ReplyID"),
+                    rs.getString("UID"), rs.getString("Name"), rs.getString("LevelName"), rs.getString("Content"),
+                    rs.getObject("ReplyTime", LocalDateTime.class), rs.getLong("Likes"), rs.getLong("Total"))).list();
+    }
+
+    record CommentPage(long total, List<CommentPreview> items) {}
+    record CommentPreview(String id, String userId, String author, String level, String content,
+                          LocalDateTime sentAt, long likes, long replyCount, List<ReplyPreview> replies) {}
+    record ReplyPreview(String id, String userId, String author, String level, String content,
+                        LocalDateTime sentAt, long likes, long total) {}
+
     Engagement engagement(String id) {
         return jdbc.sql("""
                 SELECT

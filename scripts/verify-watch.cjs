@@ -18,7 +18,7 @@ async function setup(storage = new Map(), collection = {title:null,items:[]}) {
   const p = el('player'); Object.assign(p,{ currentTime:0, duration:100, readyState:4, paused:true, ended:false, seeking:false, pause(){this.paused=true;this.emit('pause');}, async play(){this.paused=false;this.emit('play');} });
   el('login-dialog').open = false;
   let now = 0, tick, prompts = 0, copied = ''; const documentEvents={};
-  const context = { startViewerPresence(){}, el, path:'/video/10001', duration:n=>`${Math.floor(n/60)}`.padStart(2,'0')+':'+`${n%60}`.padStart(2,'0'), shortCount:String,
+  const context = { setupWatchComments(){},setupWatchScroll(){},setupRelatedExpansion(){},startViewerPresence(){}, el, path:'/video/10001', duration:n=>`${Math.floor(n/60)}`.padStart(2,'0')+':'+`${n%60}`.padStart(2,'0'), shortCount:String,
     localStorage:{getItem:k=>storage.get(k)??null,setItem:(k,v)=>storage.set(k,v)}, performance:{now:()=>now},
     setInterval:fn=>(tick=fn,1),clearInterval(){},setTimeout(){return 1;},clearTimeout(){},
     window:{addEventListener(){}}, navigator:{clipboard:{writeText:async text=>{copied=text;}}}, document:{ documentElement:{clientWidth:1200}, body:new Element(), title:'', activeElement:{tagName:'BODY'}, addEventListener(event,fn){(documentEvents[event] ||= []).push(fn);},querySelector:()=>new Element() },
@@ -88,6 +88,8 @@ async function setup(storage = new Map(), collection = {title:null,items:[]}) {
   hover.fullscreen(false);assert.equal(hover.el('player-shell').classList.contains('fullscreen-layout'),false);
   hover.el('web-fullscreen').onclick();assert.equal(hover.el('player-shell').classList.contains('fullscreen-layout'),true);
   hover.el('web-fullscreen').onclick();assert.equal(hover.el('player-shell').classList.contains('fullscreen-layout'),false);
+  hover.p.pause();await hover.el('mini-play-toggle').onclick();assert.equal(hover.p.paused,false);assert.equal(hover.el('player-shell').dataset.playing,'true');await hover.el('mini-play-toggle').onclick();assert.equal(hover.p.paused,true);assert.equal(hover.el('player-shell').dataset.playing,'false');
+  console.log('PASS: mini player uses shared play/pause state');
   console.log('PASS: native/web fullscreen state and preserved composer');
   console.log('PASS: sidebar modes, keyword routing, text/regex rules, filter switch, near-top danmaku');
   console.log('PASS: floating danmaku toolbar, guest like/report gate, clipboard copy, advanced typography/reset, sender tooltips');
