@@ -10,7 +10,6 @@ b站网页代码/
 │  ├─ src/main/java/                  页面路由、视频接口、数据库查询
 │  ├─ src/main/resources/static/      HTML、CSS、JavaScript 和图片
 │  ├─ src/main/resources/application.properties
-│  ├─ scripts/insert-experiment-video.sql
 │  ├─ pom.xml
 │  └─ start.ps1
 └─ media/
@@ -23,7 +22,7 @@ b站网页代码/
 
 需要 JDK 17 或更新版本、Maven 和 MySQL 8。启动脚本优先使用 `.build-tools` 内的 JDK、Maven；首次构建需要下载依赖。
 
-1. 在 MySQL 中导入课程提供的 `bilibili_v6.sql`。已有数据库无需重复导入。实验视频可通过 `scripts/insert-experiment-video.sql` 登记，该脚本可重复执行。
+1. 在 MySQL 中导入课程提供的 `bilibili_v6.sql`。已有数据库无需重复导入。
 2. 在 VS Code 中打开 `bilibili-home`，在 PowerShell 终端运行：
 
    ```powershell
@@ -36,7 +35,7 @@ b站网页代码/
 
 ## 配置
 
-默认连接本机 `bilibili_v6` 数据库，用户名为 `root`。可用 `BILI_DB_URL`、`BILI_DB_USER`、`BILI_DB_PASSWORD` 环境变量覆盖配置。
+默认连接本机 `bilibili` 数据库，用户名为 `root`。可用 `BILI_DB_URL`、`BILI_DB_USER`、`BILI_DB_PASSWORD` 环境变量覆盖配置。
 
 数据库保存 `media/videos/...` 和 `media/covers/...` 相对路径。`app.media-root` 默认是项目上一层，因此移动时保留上面的目录结构即可。更换媒体位置可设置 `BILI_MEDIA_ROOT` 为包含 `media` 的目录。
 
@@ -58,7 +57,9 @@ b站网页代码/
 
 首页分区直接读取 `videocategorytable`，包括新增的“娱乐”分区，无需在前端维护分区名称或 ID。尚未添加视频的分区仍显示入口，进入后提示“本分区暂无视频，敬请期待后续更新”。后续视频关联该分区的 `CategoryID`，并设为公开且已发布后，会自动出现在分区列表中。
 
-作者空间 `/space/{UID}` 参照 B 站个人空间布局，提供主页、投稿、合集和系列、作者视频搜索，不包含动态。资料、关注数、粉丝数和合集读取数据库；代表作暂取该作者播放量最高的公开视频。关注、发消息仍使用现有登录弹窗。未设置空间背景时使用网站横幅，头像文件缺失时显示昵称首字。
+作者空间 `/space/{UID}` 提供主页、投稿、合集和系列、作者视频搜索，不包含动态。资料、关注数、粉丝数和合集读取数据库；视频支持最新发布、最多播放、最多收藏（`sort=favorites`）排序。“播放全部”进入当前排序的第一条视频，“查看更多”进入投稿页。无投稿时主页显示空状态，无合集时主页隐藏合集板块。关注、发消息仍使用现有登录弹窗。未设置空间背景时使用网站横幅，头像文件缺失时显示昵称首字。
+
+主页代表作暂取播放量最高的公开视频。合集“查看更多”进入 `/space/{UID}?tab=collection&collection={合集ID}`，展示该合集视频、播放全部和分页；合集默认/倒序分别按视频 ID 正序/倒序（现有表没有自定义顺序字段）。合集页支持分组展开与封面卡片切换，投稿页支持网格与列表切换。
 
 ## 视频详情页（未登录）
 
