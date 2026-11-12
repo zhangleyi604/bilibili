@@ -14,6 +14,8 @@ import org.springframework.http.MediaTypeFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -29,6 +31,7 @@ class VideoController {
 
     private final MysqlVideoCatalog catalog;
     private final Path mediaRoot;
+    private final ViewerRegistry viewers = new ViewerRegistry();
 
     VideoController(MysqlVideoCatalog catalog, @Value("${app.media-root}") String mediaRoot) {
         this.catalog = catalog;
@@ -98,6 +101,41 @@ class VideoController {
     VideoDetail detail(@PathVariable String id) {
         var video = find(id);
         return new VideoDetail(card(video), video.description(), video.compilation(), catalog.tags(id));
+    }
+
+    @PostMapping("/videos/{id}/viewers")
+    ViewerCount viewers(@PathVariable String id, @RequestBody ViewerHeartbeat heartbeat) {
+        if (heartbeat.sessionId() == null || !heartbeat.sessionId().matches("[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}")) {
+            throw new ResponseStatusException(BAD_REQUEST, "无效的观看会话");
+        }
+        find(id);
+        return new ViewerCount(viewers.heartbeat(id, heartbeat.sessionId(), heartbeat.active()));
+    }
+
+    record ViewerHeartbeat(String sessionId, boolean active) {}
+    record ViewerCount(int count) {}
+
+    @GetMapping("/videos/{id}/collection")
+    VideoCollection collection(@PathVariable String id) {
+        var video = find(id);
+        if (video.compilation() == null) return new VideoCollection(null, List.of(), 0);
+        var videos = catalog.collectionVideos(id);
+        return new VideoCollection(video.compilation(), videos.stream().map(this::card).toList(),
+                videos.stream().mapToLong(MysqlVideoCatalog.Video::plays).sum());
+    }
+
+    record VideoCollection(String title, List<VideoCard> items, long plays) {}
+
+    @GetMapping("/videos/{id}/engagement")
+    MysqlVideoCatalog.Engagement engagement(@PathVariable String id) {
+        find(id);
+        return catalog.engagement(id);
+    }
+
+    @GetMapping("/videos/{id}/danmaku")
+    List<MysqlVideoCatalog.Danmaku> danmaku(@PathVariable String id) {
+        find(id);
+        return catalog.danmaku(id);
     }
 
     @GetMapping("/videos/{id}/cover")

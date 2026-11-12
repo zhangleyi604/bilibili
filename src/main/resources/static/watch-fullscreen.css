@@ -1,0 +1,75 @@
+﻿/* Fullscreen overlays use compact CSS pixels rather than video-width units.
+   Reference: settings card about 144 x 140 CSS px, 12px labels, 30 x 20 switches. */
+.fullscreen-layout .hover-panel {
+  font-size:12px;
+  line-height:1.5;
+  font-weight:400;
+  padding:12px 18px;
+  bottom:calc(100% + 16px);
+}
+.fullscreen-layout .hover-panel strong { font-size:12px; font-weight:500; margin:0 0 10px; }
+.fullscreen-layout .hover-panel button,
+.fullscreen-layout .hover-panel select,
+.fullscreen-layout .hover-panel input,
+.fullscreen-layout .hover-panel label { font-size:12px; font-weight:400; }
+.fullscreen-layout .hover-panel .panel-next { font-size:12px; line-height:20px; margin-top:10px; padding-top:10px; }
+.fullscreen-layout .hover-panel .panel-next span { font-size:18px; margin-left:6px; }
+.fullscreen-layout .hover-panel .panel-back { font-size:12px; margin-bottom:10px; }
+.fullscreen-layout .playback-settings { width:144px; border-radius:2px; }
+.fullscreen-layout .playback-settings label { gap:10px; margin-bottom:10px; min-height:20px; }
+.fullscreen-layout .playback-settings input[role="switch"] { width:30px; height:20px; }
+.fullscreen-layout .playback-settings .panel-next { border:0; margin-top:0; padding-top:0; white-space:nowrap; }
+.fullscreen-layout [data-tooltip]::after { font-size:12px; line-height:16px; padding:5px 8px; border-radius:2px; bottom:calc(100% + 10px); }
+.fullscreen-layout .login-feature-panel { width:138px; }
+.fullscreen-layout .hover-panel .panel-login { font-size:12px; padding:6px 12px; border-radius:5px; }
+.fullscreen-layout .subtitle-panel { width:168px; }
+.fullscreen-layout .subtitle-panel:has(#subtitle-settings:not([hidden])) { width:276px; max-height:calc(100vh - 120px); overflow-y:auto; }
+.fullscreen-layout .subtitle-grid { gap:12px 20px; }
+.fullscreen-layout .subtitle-grid label { gap:5px; }
+.fullscreen-layout .subtitle-grid select { padding:3px 6px; }
+.fullscreen-layout .subtitle-opacity { margin-top:12px; gap:8px; }
+.fullscreen-layout .hover-panel .subtitle-other { margin:12px 0 8px; }
+.fullscreen-layout .subtitle-options { gap:18px; }
+.fullscreen-layout .hover-panel .subtitle-reset { margin-top:14px; padding:3px 18px; }
+.fullscreen-layout .playback-settings:has(#playback-more:not([hidden])) { width:286px; padding:12px 18px; right:-35px; max-height:calc(100vh - 120px); }
+.fullscreen-layout #playback-more strong { margin:8px 0 4px; }
+.fullscreen-layout .preference-segments { gap:8px; }
+.fullscreen-layout .preference-segments button { padding:4px 6px; }
+.fullscreen-layout .playback-other { gap:6px 12px; font-size:12px; }
+.fullscreen-layout .playback-settings .playback-other label { margin:0; gap:4px; }
+.fullscreen-layout .volume-panel { width:44px; padding:0 8px 10px; gap:8px; background:transparent; }
+.fullscreen-layout .volume-panel output { font-size:12px; line-height:18px; }
+.fullscreen-layout .volume-control .volume-panel #volume { width:4px; height:64px; }
+.fullscreen-layout .danmaku-settings-panel { width:320px; padding:16px 20px; font-size:12px; max-height:calc(100vh - 120px); }
+.fullscreen-layout .dm-filter-types { gap:24px; margin-bottom:14px; }
+.fullscreen-layout .dm-filter-types button { font-size:14px; gap:4px; }
+.fullscreen-layout .dm-checks { gap:8px 12px; font-size:12px; margin-bottom:12px; }
+.fullscreen-layout .dm-filter-actions { gap:12px; }
+.fullscreen-layout .dm-slider { margin:16px 0; gap:10px; }
+.fullscreen-layout .dm-density { gap:12px; padding:5px 6px; }
+.fullscreen-layout .danmaku-settings-panel .panel-next { margin-top:18px; padding-top:12px; }
+.fullscreen-layout .danmaku-settings-panel:has(#dm-settings-advanced:not([hidden])) { width:270px; }
+.fullscreen-layout .dm-font-row { gap:18px; margin-bottom:14px; }
+.fullscreen-layout .dm-font-row select { font-size:12px; padding:4px 6px; }
+.fullscreen-layout .fullscreen-collection { width:260px; padding:14px 18px; font-size:12px; }
+.fullscreen-layout .fullscreen-episode { font-size:12px; padding:7px 0; }
+@media(max-height:500px) { .fullscreen-layout .hover-panel { max-height:calc(100vh - 95px); overflow-y:auto; } }
+
+/* Match both fullscreen danmaku buttons, including their overlaid badges.
+   The settings button's regular selector contains two IDs, so match that specificity. */
+.fullscreen-layout #danmaku-compose > #danmaku-toggle,
+.fullscreen-layout #danmaku-control > #danmaku-settings {
+  width:25px;
+  height:30px;
+  min-height:0;
+  padding:0;
+}
+.fullscreen-layout #danmaku-compose > #danmaku-toggle > .watch-icon,
+.fullscreen-layout #danmaku-control > #danmaku-settings > .watch-icon {
+  width:25px;
+  height:25px;
+}
+.fullscreen-layout #danmaku-compose > #danmaku-control {
+  width:25px;
+  height:30px;
+}
