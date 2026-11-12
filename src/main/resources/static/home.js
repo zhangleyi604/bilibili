@@ -233,7 +233,7 @@ async function init() {
     document.title = name + ' - dilidili';
     return;
   }
-  if (watching) return loadVideo();
+  if (watching) return loadWatchPage();
   if (authorId) return loadSpace();
   const title = search ? (keyword ? '“' + keyword + '” 的搜索结果' : tag ? '标签：' + tag : '搜索视频')
     : authorId ? '投稿视频' : rank ? '每周播放排行榜' : category ? '分区视频' : path === '/latest' ? '最新发布' : path === '/recommend' ? '推荐视频' : '热门视频';

@@ -138,6 +138,36 @@ class MysqlVideoCatalog {
                 .param("category", categoryId).param("limit", limit).query(MysqlVideoCatalog::readRank).list();
     }
 
+    List<Video> collectionVideos(String videoId) {
+        return jdbc.sql(PUBLIC_VIDEOS + """
+                 AND v.CompilationID = (SELECT CompilationID FROM videotable WHERE VideoID = CAST(:id AS UNSIGNED))
+                 ORDER BY v.UploadTime, v.VideoID
+                """).param("id", videoId).query(MysqlVideoCatalog::readVideo).list();
+    }
+
+    Engagement engagement(String id) {
+        return jdbc.sql("""
+                SELECT
+                  (SELECT COUNT(*) FROM liketable WHERE LikeTargetID = CAST(:id AS UNSIGNED) AND LikeTargetType = 0) AS Likes,
+                  (SELECT COALESCE(-SUM(CoinChange), 0) FROM coinrecordtable WHERE VideoID = CAST(:id AS UNSIGNED) AND CoinChange < 0) AS Coins,
+                  (SELECT COUNT(*) FROM collectvideotable WHERE VideoID = CAST(:id AS UNSIGNED)) AS Favorites,
+                  (SELECT COUNT(*) FROM forwardtable WHERE VideoID = CAST(:id AS UNSIGNED)) AS Shares
+                """).param("id", id).query((rs, row) -> new Engagement(rs.getLong("Likes"), rs.getLong("Coins"),
+                        rs.getLong("Favorites"), rs.getLong("Shares"))).single();
+    }
+
+    List<Danmaku> danmaku(String id) {
+        return jdbc.sql("""
+                SELECT DanmakuID, UID, Content, VideoTimestamp, SendTime FROM danmakutable
+                WHERE VideoID = CAST(:id AS UNSIGNED) AND DanmakuStatus = 'active'
+                ORDER BY SendTime, DanmakuID
+                """).param("id", id).query((rs, row) -> new Danmaku(rs.getString("DanmakuID"), rs.getString("UID"),
+                        rs.getString("Content"), rs.getInt("VideoTimestamp"), rs.getObject("SendTime", LocalDateTime.class))).list();
+    }
+
+    record Engagement(long like, long coin, long favorite, long share) {}
+    record Danmaku(String id, String userId, String content, int timestamp, LocalDateTime sentAt) {}
+
     private static Video readVideo(java.sql.ResultSet rs, int row) throws java.sql.SQLException {
         return new Video(rs.getString("VideoID"), rs.getString("VideoTitle"), rs.getString("VideoDescription"),
                 rs.getString("Name"), rs.getString("UID"), rs.getString("CategoryID"), rs.getString("CategoryName"),
