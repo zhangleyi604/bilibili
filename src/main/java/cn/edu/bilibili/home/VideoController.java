@@ -156,12 +156,12 @@ class VideoController {
         String base = "/api/videos/" + video.id();
         return new VideoCard(video.id(), video.title(), video.author(), video.authorId(), video.categoryId(), video.category(),
                 video.duration(), video.plays(), video.danmaku(), video.publishedAt(), base + "/cover",
-                video.videoPath() == null ? null : base + "/stream");
+                video.videoPath() == null ? null : base + "/stream", video.description());
     }
 
     record VideoPage(List<VideoCard> items, boolean hasMore) {}
     record VideoDetail(VideoCard video, String description, String compilation, List<String> tags) {}
     record VideoCard(String id, String title, String author, String authorId, String categoryId, String category,
                      int duration, long plays, long danmaku, LocalDateTime publishedAt,
-                     String coverUrl, String streamUrl) {}
+                     String coverUrl, String streamUrl, String description) {}
 }

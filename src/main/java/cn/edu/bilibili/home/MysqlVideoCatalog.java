@@ -62,6 +62,9 @@ class MysqlVideoCatalog {
         sql.append(switch (query.sort()) {
             case latest -> " ORDER BY v.UploadTime DESC, v.VideoID DESC";
             case popular -> " ORDER BY Plays DESC, v.VideoID ASC";
+            case favorites -> " ORDER BY (SELECT COUNT(*) FROM collectvideotable cv WHERE cv.VideoID = v.VideoID) DESC, v.VideoID ASC";
+            case sequence -> " ORDER BY v.VideoID ASC";
+            case reverse -> " ORDER BY v.VideoID DESC";
             case recommend -> " ORDER BY COALESCE(v.VideoContent = :featured, 0) DESC, CRC32(CONCAT(v.VideoID, ':', :day)), v.VideoID ASC";
         }).append(" LIMIT :limit OFFSET :offset");
         var statement = jdbc.sql(sql.toString()).param("limit", query.limit()).param("offset", query.offset());
@@ -155,7 +158,7 @@ class MysqlVideoCatalog {
         return LocalDate.now(ZoneId.of("Asia/Shanghai"));
     }
 
-    enum Sort { recommend, latest, popular }
+    enum Sort { recommend, latest, popular, favorites, sequence, reverse }
     record Category(String id, String name) {}
     record Author(String id, String name, String signature, String headUrl, String birthday,
                   String level, long following, long followers, long videos) {}

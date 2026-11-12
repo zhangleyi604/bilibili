@@ -15,6 +15,7 @@ const page = Math.min(10000, Math.max(0, Number.parseInt(params.get('page'), 10)
 const keyword = params.get('keyword') || '';
 const tag = params.get('tag') || '';
 const narrow = matchMedia('(max-width: 1000px)');
+const wide = matchMedia('(min-width: 1900px)');
 let items = [];
 let slides = [];
 let slideIndex = 0;
@@ -107,7 +108,7 @@ function pageUrl(changes) {
 }
 
 function renderCards() {
-  const count = home ? (narrow.matches ? 4 : 6) : 0;
+  const count = home ? (narrow.matches ? 4 : wide.matches ? 8 : 6) : 0;
   el('top-cards').replaceChildren(...items.slice(0, count).map(card));
   el('video-grid').replaceChildren(...items.slice(count).map(card));
 }
@@ -271,5 +272,8 @@ async function init() {
 el('prev-slide').onclick = () => { if (slides.length) { slideIndex = (slideIndex + slides.length - 1) % slides.length; renderSlide(); } };
 el('next-slide').onclick = () => { if (slides.length) { slideIndex = (slideIndex + 1) % slides.length; renderSlide(); } };
 document.querySelector('.back-top').onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' });
-if (home) narrow.addEventListener('change', renderCards);
+if (home) {
+  narrow.addEventListener('change', renderCards);
+  wide.addEventListener('change', renderCards);
+}
 init();
