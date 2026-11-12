@@ -8,8 +8,9 @@ const rank = path === '/popular/rank';
 const watching = path.startsWith('/video/');
 const service = path.startsWith('/service/');
 const category = path.startsWith('/channel/') ? path.split('/')[2] : null;
+const authorId = path.startsWith('/space/') ? path.split('/')[2] : null;
 const sort = ['popular', 'latest', 'recommend'].includes(params.get('sort')) ? params.get('sort')
-  : path === '/popular' ? 'popular' : path === '/latest' ? 'latest' : 'recommend';
+  : path === '/popular' ? 'popular' : path === '/latest' || authorId ? 'latest' : 'recommend';
 const page = Math.min(10000, Math.max(0, Number.parseInt(params.get('page'), 10) || 0));
 const keyword = params.get('keyword') || '';
 const tag = params.get('tag') || '';
@@ -62,7 +63,8 @@ function attachCover(img, url, category) {
 }
 
 function card(video) {
-  const a = link('/video/' + encodeURIComponent(video.id), null, 'card');
+  const result = node('article', 'card');
+  const a = link('/video/' + encodeURIComponent(video.id), null, 'card-video');
   const cover = node('div', 'card-cover');
   const img = node('img');
   img.alt = '';
@@ -78,9 +80,12 @@ function card(video) {
   const title = node('h2', 'card-title', video.title);
   const date = video.publishedAt ? ' · ' + video.publishedAt.slice(5, 10) : '';
   const byline = node('p', 'card-byline');
-  byline.append(node('span', 'up', 'UP'), video.author + date);
-  a.append(cover, title, byline);
-  return a;
+  const author = link('/space/' + encodeURIComponent(video.authorId), null, 'card-author');
+  author.append(node('span', 'up', 'UP'), video.author);
+  byline.append(author, date);
+  a.append(cover, title);
+  result.append(a, byline);
+  return result;
 }
 
 function link(href, label, className) {
@@ -127,6 +132,7 @@ async function loadFeed(requestedPage = page) {
   el('pagination').replaceChildren();
   const query = new URLSearchParams({ page: requestedPage, size: 20, sort });
   if (category) query.set('categoryId', category);
+  if (authorId) query.set('authorId', authorId);
   if (keyword) query.set('q', keyword);
   if (tag) query.set('tag', tag);
   try {
@@ -146,7 +152,8 @@ async function loadFeed(requestedPage = page) {
     const result = await api('/videos?' + query);
     items = result.items;
     renderCards();
-    status(items.length ? '' : search ? '没有找到相关视频，试试其他关键词' : '暂无视频');
+    status(items.length ? '' : search ? '没有找到相关视频，试试其他关键词'
+      : authorId ? '这位作者暂未发布公开视频' : category ? '本分区暂无视频，敬请期待后续更新' : '暂无视频');
     if (home) {
       slides = [{ title: '每一次相遇，都有新的精彩', coverUrl: '/assets/carousel.webp', category: '热门' }, ...items.slice(0, 4)];
       slideIndex = 0;
@@ -208,8 +215,10 @@ async function loadVideo() {
 async function init() {
   document.body.classList.toggle('inner-page', !home);
   document.body.classList.toggle('search-page', search);
-  document.querySelector('.channels').hidden = watching || service;
-  document.querySelector('.feed').hidden = watching || service;
+  document.body.classList.toggle('author-page', Boolean(authorId));
+  document.querySelector('.channels').hidden = watching || service || Boolean(authorId);
+  el('author-profile').hidden = !authorId;
+  document.querySelector('.feed').hidden = watching || service || Boolean(authorId);
   el('video-page').hidden = !watching;
   el('service-page').hidden = !service;
   el('featured').hidden = !home;
@@ -225,10 +234,11 @@ async function init() {
     return;
   }
   if (watching) return loadVideo();
+  if (authorId) return loadSpace();
   const title = search ? (keyword ? '“' + keyword + '” 的搜索结果' : tag ? '标签：' + tag : '搜索视频')
-    : rank ? '每周播放排行榜' : category ? '分区视频' : path === '/latest' ? '最新发布' : path === '/recommend' ? '推荐视频' : '热门视频';
+    : authorId ? '投稿视频' : rank ? '每周播放排行榜' : category ? '分区视频' : path === '/latest' ? '最新发布' : path === '/recommend' ? '推荐视频' : '热门视频';
   el('feed-title').textContent = title;
-  if (!home) document.title = title + ' - 哔哩哔哩';
+  if (!home && !authorId) document.title = title + ' - 哔哩哔哩';
   el('feed-note').textContent = rank ? '按本周有效播放次数排序' : '';
   if (!home && !rank) {
     const tabs = node('nav', 'sort-tabs');
@@ -241,6 +251,7 @@ async function init() {
     el('feed-toolbar').after(tabs);
   }
   loadFeed();
+  if (authorId) return;
   try {
     const categories = await api('/categories');
     el('categories').replaceChildren(link('/', '首页'), ...categories.map((item) => {

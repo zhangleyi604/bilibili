@@ -25,7 +25,13 @@ if ($askedForPassword) {
 
 try {
     $jar = 'target/bilibili-home-1.0.0.jar'
-    if ($Rebuild -or -not (Test-Path -LiteralPath $jar)) {
+    $needsBuild = $Rebuild -or -not (Test-Path -LiteralPath $jar)
+    if (-not $needsBuild) {
+        $jarTime = (Get-Item -LiteralPath $jar).LastWriteTimeUtc
+        $needsBuild = (Get-Item -LiteralPath 'pom.xml').LastWriteTimeUtc -gt $jarTime -or
+            [bool](Get-ChildItem -LiteralPath 'src' -File -Recurse | Where-Object { $_.LastWriteTimeUtc -gt $jarTime } | Select-Object -First 1)
+    }
+    if ($needsBuild) {
         $localMaven = '.build-tools/apache-maven-3.9.11/bin/mvn.cmd'
         $maven = if (Test-Path -LiteralPath $localMaven) { $localMaven } else { 'mvn.cmd' }
         $repo = Join-Path $PSScriptRoot '.build-tools/repository'

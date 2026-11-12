@@ -47,10 +47,15 @@ b站网页代码/
 ## 接口
 
 - `/api/categories`：分区。
-- `/api/videos`：视频列表，支持 `q`、`tag`、`categoryId`、`sort`、`page`、`size`。
+- `/api/authors/{id}`：作者资料与关注、粉丝、公开视频数；头像和合集分别通过 `/avatar`、`/collections` 子路径读取。
+- `/api/videos`：视频列表，支持 `q`、`tag`、`categoryId`、`authorId`、`compilationId`、`sort`、`page`、`size`。
 - `/api/ranks/weekly`：周榜，可按 `categoryId` 筛选。
 - `/api/videos/{id}`：视频详情。
 - `/api/videos/{id}/cover`：封面。
 - `/api/videos/{id}/stream`：视频，支持拖动进度。
 
 仅展示公开且已发布的视频。首页推荐置顶实验视频，其余按日期稳定排序；热门按播放量排序。
+
+首页分区直接读取 `videocategorytable`，包括新增的“娱乐”分区，无需在前端维护分区名称或 ID。尚未添加视频的分区仍显示入口，进入后提示“本分区暂无视频，敬请期待后续更新”。后续视频关联该分区的 `CategoryID`，并设为公开且已发布后，会自动出现在分区列表中。
+
+作者空间 `/space/{UID}` 参照 B 站个人空间布局，提供主页、投稿、合集和系列、作者视频搜索，不包含动态。资料、关注数、粉丝数和合集读取数据库；代表作暂取该作者播放量最高的公开视频。关注、发消息仍使用现有登录弹窗。未设置空间背景时使用网站横幅，头像文件缺失时显示昵称首字。

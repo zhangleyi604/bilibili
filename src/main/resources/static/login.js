@@ -48,7 +48,7 @@ function delayHidePopup() {
 
 document.querySelectorAll('[data-login]').forEach((button) => {
   button.addEventListener('click', () => openLogin(button));
-  if (button.dataset.login === '创作中心') return;
+  if (button.dataset.login === '创作中心' || button.closest('.space-actions')) return;
   button.addEventListener('mouseenter', () => showLoginPopup(button));
   button.addEventListener('mouseleave', delayHidePopup);
   button.addEventListener('focus', () => showLoginPopup(button));

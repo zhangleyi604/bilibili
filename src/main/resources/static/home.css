@@ -65,12 +65,14 @@ svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.7;stroke
 .card{min-width:0;display:flex;flex-direction:column}
 .card-cover{flex-shrink:0;position:relative;aspect-ratio:16/9;border-radius:7px;overflow:hidden;background:#e6f2f6;display:block}
 .card-cover img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .22s ease}
-.card:hover .card-cover img{transform:scale(1.035)}
+.card-video:hover .card-cover img{transform:scale(1.035)}
 .card-stats{display:flex;gap:10px;position:absolute;left:0;right:0;bottom:0;padding:12px 8px 6px;color:white;font-size:12px;background:linear-gradient(transparent,#000a);align-items:center}
 .card-stats svg{width:15px;height:15px;margin-right:3px}
 .card-stats time{margin-left:auto}
 .card-title{font-size:15px;font-weight:550;line-height:1.4;min-height:2.8em;max-height:2.8em;overflow-wrap:anywhere;margin:8px 0 4px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
-.card:hover .card-title{color:var(--blue)}
+.card-video:hover .card-title{color:var(--blue)}
+.card-author{display:inline-flex;align-items:center;gap:5px;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.card-author:hover{color:var(--blue)}
 .card-byline{display:flex;align-items:center;gap:5px;color:var(--muted);font-size:12px;margin:auto 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .up{display:inline-block;font-size:8px;font-weight:700;border:1px solid;border-radius:2px;line-height:1;padding:1px 2px}
 .refresh,.back-top{border:1px solid var(--line);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:#fff;color:#61666d;font-size:12px}
@@ -113,6 +115,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:30px 0}
 .watch-layout aside h2{font-size:16px;font-weight:500;margin:0 0 18px}
 #related-videos{display:grid;gap:18px}
 #related-videos .card{display:grid;grid-template-columns:140px minmax(0,1fr);column-gap:10px;align-content:start}
+#related-videos .card-video{display:contents}
 #related-videos .card-cover{grid-row:span 2}
 #related-videos .card-title{font-size:14px;margin:0}
 #related-videos .card-byline{margin-top:8px;display:block}

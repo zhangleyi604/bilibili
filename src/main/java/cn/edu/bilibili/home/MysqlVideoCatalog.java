@@ -13,7 +13,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 class MysqlVideoCatalog {
     private static final String PUBLIC_VIDEOS = """
-            SELECT v.VideoID, v.VideoTitle, v.VideoDescription, u.Name, v.CategoryID, c.CategoryName,
+            SELECT v.VideoID, v.VideoTitle, v.VideoDescription, u.UID, u.Name, v.CategoryID, c.CategoryName,
                    v.VideoDuration, COALESCE(p.PlayCount, 0) AS Plays, v.UploadTime,
                    v.CoverUrl, v.VideoContent, co.CompilationTitle,
                    (SELECT COUNT(*) FROM danmakutable d
@@ -41,6 +41,10 @@ class MysqlVideoCatalog {
 
     List<Video> findVideos(Query query) {
         StringBuilder sql = new StringBuilder(PUBLIC_VIDEOS);
+        if (query.authorId() != null) {
+            sql.append(" AND v.UID = CAST(:author AS UNSIGNED)");
+        }
+        if (query.compilationId() != null) sql.append(" AND v.CompilationID = CAST(:compilation AS UNSIGNED)");
         if (query.categoryId() != null) {
             sql.append(" AND v.CategoryID = CAST(:category AS UNSIGNED)");
         }
@@ -61,6 +65,10 @@ class MysqlVideoCatalog {
             case recommend -> " ORDER BY COALESCE(v.VideoContent = :featured, 0) DESC, CRC32(CONCAT(v.VideoID, ':', :day)), v.VideoID ASC";
         }).append(" LIMIT :limit OFFSET :offset");
         var statement = jdbc.sql(sql.toString()).param("limit", query.limit()).param("offset", query.offset());
+        if (query.authorId() != null) {
+            statement.param("author", query.authorId());
+        }
+        if (query.compilationId() != null) statement.param("compilation", query.compilationId());
         if (query.categoryId() != null) {
             statement.param("category", query.categoryId());
         }
@@ -79,6 +87,30 @@ class MysqlVideoCatalog {
     Optional<Video> findVideo(String id) {
         return jdbc.sql(PUBLIC_VIDEOS + " AND v.VideoID = CAST(:id AS UNSIGNED)").param("id", id)
                 .query(MysqlVideoCatalog::readVideo).optional();
+    }
+
+    Optional<Author> findAuthor(String id) {
+        return jdbc.sql("""
+                SELECT u.UID, u.Name, u.Signature, u.HeadUrl, DATE_FORMAT(u.Birthday, '%m-%d') AS Birthday, l.LevelName,
+                  (SELECT COUNT(*) FROM relationtable r WHERE r.UID = u.UID AND r.RelationType = 0) AS Following,
+                  (SELECT COUNT(*) FROM relationtable r WHERE r.TargetUID = u.UID AND r.RelationType = 0) AS Followers,
+                  (SELECT COUNT(*) FROM videotable v WHERE v.UID = u.UID
+                    AND v.VideoStatus = 'published' AND v.VisibleStatus = 'public') AS Videos
+                FROM usertable u JOIN userleveltable l ON l.LevelID = u.LevelID WHERE u.UID = CAST(:id AS UNSIGNED)
+                """).param("id", id).query((rs, row) -> new Author(rs.getString("UID"), rs.getString("Name"),
+                        rs.getString("Signature"), rs.getString("HeadUrl"), rs.getString("Birthday"),
+                        rs.getString("LevelName"), rs.getLong("Following"), rs.getLong("Followers"), rs.getLong("Videos"))).optional();
+    }
+
+    List<Compilation> compilations(String authorId) {
+        return jdbc.sql("""
+                SELECT c.CompilationID, c.CompilationTitle, COUNT(v.VideoID) AS Videos
+                FROM compilationtable c LEFT JOIN videotable v ON v.CompilationID = c.CompilationID
+                  AND v.UID = c.UID AND v.VideoStatus = 'published' AND v.VisibleStatus = 'public'
+                WHERE c.UID = CAST(:id AS UNSIGNED)
+                GROUP BY c.CompilationID, c.CompilationTitle ORDER BY c.CompilationID
+                """).param("id", authorId).query((rs, row) -> new Compilation(rs.getString("CompilationID"),
+                        rs.getString("CompilationTitle"), rs.getLong("Videos"))).list();
     }
 
     List<String> tags(String id) {
@@ -108,7 +140,7 @@ class MysqlVideoCatalog {
 
     private static Video readVideo(java.sql.ResultSet rs, int row) throws java.sql.SQLException {
         return new Video(rs.getString("VideoID"), rs.getString("VideoTitle"), rs.getString("VideoDescription"),
-                rs.getString("Name"), rs.getString("CategoryID"), rs.getString("CategoryName"),
+                rs.getString("Name"), rs.getString("UID"), rs.getString("CategoryID"), rs.getString("CategoryName"),
                 rs.getInt("VideoDuration"), rs.getLong("Plays"), rs.getLong("Danmaku"),
                 rs.getObject("UploadTime", LocalDateTime.class), rs.getString("CoverUrl"),
                 rs.getString("VideoContent"), rs.getString("CompilationTitle"));
@@ -125,9 +157,12 @@ class MysqlVideoCatalog {
 
     enum Sort { recommend, latest, popular }
     record Category(String id, String name) {}
-    record Video(String id, String title, String description, String author, String categoryId,
+    record Author(String id, String name, String signature, String headUrl, String birthday,
+                  String level, long following, long followers, long videos) {}
+    record Compilation(String id, String title, long videos) {}
+    record Video(String id, String title, String description, String author, String authorId, String categoryId,
                  String category, int duration, long plays, long danmaku, LocalDateTime publishedAt,
                  String coverPath, String videoPath, String compilation) {}
-    record Query(String categoryId, String keyword, String tag, Sort sort, int offset, int limit) {}
+    record Query(String categoryId, String authorId, String compilationId, String keyword, String tag, Sort sort, int offset, int limit) {}
     record Rank(String id, String title, long plays, long rank) {}
 }

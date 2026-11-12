@@ -42,6 +42,8 @@ class VideoController {
 
     @GetMapping("/videos")
     VideoPage videos(@RequestParam(required = false) String categoryId,
+                     @RequestParam(required = false) String authorId,
+                     @RequestParam(required = false) String compilationId,
                      @RequestParam(defaultValue = "") String q,
                      @RequestParam(defaultValue = "") String tag,
                      @RequestParam(defaultValue = "recommend") MysqlVideoCatalog.Sort sort,
@@ -50,10 +52,29 @@ class VideoController {
         if (page < 0 || page > 10000 || size < 1 || size > 40 || q.length() > 80 || tag.length() > 80) {
             throw new ResponseStatusException(BAD_REQUEST, "分页或检索参数超出范围");
         }
-        var query = new MysqlVideoCatalog.Query(validId(categoryId), q.strip(), tag.strip(), sort, page * size, size + 1);
+        var query = new MysqlVideoCatalog.Query(validId(categoryId), validId(authorId), validId(compilationId), q.strip(), tag.strip(), sort, page * size, size + 1);
         var results = catalog.findVideos(query);
         var items = results.stream().limit(size).map(this::card).toList();
         return new VideoPage(items, results.size() > size);
+    }
+
+    @GetMapping("/authors/{id}")
+    MysqlVideoCatalog.Author author(@PathVariable String id) {
+        return catalog.findAuthor(validId(id))
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "作者不存在"));
+    }
+
+    @GetMapping("/authors/{id}/collections")
+    List<MysqlVideoCatalog.Compilation> collections(@PathVariable String id) {
+        author(id);
+        return catalog.compilations(id);
+    }
+
+    @GetMapping("/authors/{id}/avatar")
+    ResponseEntity<Resource> avatar(@PathVariable String id) {
+        Path file = underMediaRoot(author(id).headUrl(), "media/avatars/");
+        return fileResponse(file, MediaTypeFactory.getMediaType(file.getFileName().toString())
+                .filter(type -> type.getType().equals("image")).orElseThrow(() -> missingMedia()));
     }
 
     @GetMapping("/ranks/weekly")
@@ -133,14 +154,14 @@ class VideoController {
 
     private VideoCard card(MysqlVideoCatalog.Video video) {
         String base = "/api/videos/" + video.id();
-        return new VideoCard(video.id(), video.title(), video.author(), video.categoryId(), video.category(),
+        return new VideoCard(video.id(), video.title(), video.author(), video.authorId(), video.categoryId(), video.category(),
                 video.duration(), video.plays(), video.danmaku(), video.publishedAt(), base + "/cover",
                 video.videoPath() == null ? null : base + "/stream");
     }
 
     record VideoPage(List<VideoCard> items, boolean hasMore) {}
     record VideoDetail(VideoCard video, String description, String compilation, List<String> tags) {}
-    record VideoCard(String id, String title, String author, String categoryId, String category,
+    record VideoCard(String id, String title, String author, String authorId, String categoryId, String category,
                      int duration, long plays, long danmaku, LocalDateTime publishedAt,
                      String coverUrl, String streamUrl) {}
 }
