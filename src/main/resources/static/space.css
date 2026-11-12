@@ -34,10 +34,25 @@
 #space-search svg{width:16px;height:16px}
 .space-counts{display:flex;gap:28px;margin-left:auto;text-align:center;font-size:13px;color:#61666d;white-space:nowrap}
 .space-counts strong{display:block;color:var(--ink);font-weight:400;margin-top:6px}
+.space-counts button{padding:0;font-size:inherit;text-align:center}
+.space-counts button:hover,.space-counts button:hover strong{color:var(--space-blue)}
 .space-body{display:grid;grid-template-columns:minmax(0,1fr) 240px;gap:36px;padding:30px 4%}
-.space-sidebar section{padding:20px 18px;border-radius:8px;background:var(--wash)}
-.space-sidebar h2{font-size:16px;font-weight:500;margin:0 0 20px}
-.space-sidebar p{font-size:13px;color:#61666d;overflow-wrap:anywhere}
+.space-sidebar section{padding:16px 18px;border-radius:8px;background:var(--wash)}
+.space-sidebar h2{font-size:16px;font-weight:500;margin:0 0 14px}
+.space-sidebar p{font-size:13px;line-height:20px;margin:10px 0 0;color:#61666d;overflow-wrap:anywhere}
+.profile-row{display:flex;align-items:center;gap:8px}
+.profile-row svg{width:18px;height:18px}
+.charge-card{position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;height:108px;padding:16px;margin-bottom:12px;border-radius:8px;background:var(--wash);overflow:hidden}
+.charge-label{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:4px;flex:none;width:80px;height:34px;border-radius:6px;background:#ea759f;color:white;font-size:18px;font-weight:600}
+.charge-label svg{width:16px;height:24px;fill:currentColor;stroke:none}
+.charge-note{position:relative;color:#61666d;font-size:12px;white-space:nowrap}
+.charge-card .charge-lines{position:absolute;left:100px;top:14px;width:calc(100% - 100px);height:80px;fill:none;stroke:#e3e5e7;stroke-width:4;stroke-linecap:butt;stroke-linejoin:miter;pointer-events:none}
+.charge-fill{stroke:#ea759f;clip-path:inset(0 100% 0 0);transition:clip-path .55s ease-out}
+.charge-card:hover .charge-fill,.charge-card:focus-visible .charge-fill{clip-path:inset(0)}
+.charge-spark{stroke:#ffe36e;opacity:0;clip-path:inset(0 100% 0 0)}
+.charge-card:hover .charge-spark,.charge-card:focus-visible .charge-spark{opacity:1;animation:charge-spark 1.2s linear .55s infinite both}
+@keyframes charge-spark{from{clip-path:inset(0 100% 0 -18%)}to{clip-path:inset(0 -18% 0 100%)}}
+@media(prefers-reduced-motion:reduce){.charge-fill{transition:none}.charge-card .charge-spark{animation:none;opacity:0}}
 .space-section{padding-bottom:30px;margin-bottom:28px;border-bottom:1px solid var(--line)}
 .space-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px}
 .space-heading h2{font-size:23px;font-weight:600;margin:0}

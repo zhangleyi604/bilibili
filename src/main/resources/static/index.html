@@ -4,15 +4,17 @@
   <meta charset="utf-8">
   <base target="_self">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>哔哩哔哩 · 第二组课程项目</title>
-  <link rel="stylesheet" href="/home.css?v=7">
-  <link rel="stylesheet" href="/space.css?v=2">
-  <script src="/space.js?v=1" defer></script>
+  <title>dilidili · 第二组课程项目</title>
+  <link rel="stylesheet" href="/home.css?v=8">
+  <link rel="stylesheet" href="/space.css?v=5">
+  <script src="/space.js?v=2" defer></script>
   <script src="/home.js" defer></script>
-  <script src="/login.js?v=2" defer></script>
+  <script src="/login.js?v=3" defer></script>
 </head>
 <body>
   <svg class="symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-uid" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="4"/><text x="12" y="15" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" stroke="none" fill="currentColor">UID</text></symbol>
+    <symbol id="i-cake" viewBox="0 0 24 24"><path d="M4 14h16v7H4zM4 17c2 2 3-2 5 0s3-2 5 0 4-2 6 0M6 14V9h12v5M8 9V6m4 3V5m4 4V6M8 3v1m4-2v1m4 0v1"/></symbol>
     <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></symbol>
     <symbol id="i-tv" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="14" rx="3"/><path d="m8 2 4 4 4-4M8 12l2 1m6-1-2 1"/></symbol>
     <symbol id="i-play" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3z"/></symbol>
@@ -47,7 +49,7 @@
         <button type="button" class="upload" data-login="投稿" aria-haspopup="dialog"><svg><use href="#i-upload"/></svg>投稿</button>
       </div>
     </nav>
-    <div class="banner"><a href="/" target="_self" class="banner-logo" aria-label="哔哩哔哩首页"><span>bilibili</span></a></div>
+    <div class="banner"><a href="/" target="_self" class="banner-logo" aria-label="dilidili 首页"><img src="/assets/dilidili.svg?v=2" alt="dilidili"></a></div>
   </header>
 
   <main class="layout">
@@ -84,10 +86,25 @@
       <nav class="space-nav" aria-label="个人空间">
         <div id="space-tabs"></div>
         <form id="space-search"><input name="keyword" placeholder="搜索视频" aria-label="搜索作者的视频" maxlength="80"><button aria-label="搜索作者的视频"><svg><use href="#i-search"/></svg></button></form>
-        <div class="space-counts"><div>关注数<strong id="author-following"></strong></div><div>粉丝数<strong id="author-followers"></strong></div></div>
+        <div class="space-counts">
+          <button data-login="关注数" data-login-only aria-haspopup="dialog">关注数<strong id="author-following"></strong></button>
+          <button data-login="粉丝数" data-login-only aria-haspopup="dialog">粉丝数<strong id="author-followers"></strong></button>
+        </div>
       </nav>
       <div class="space-body"><div id="space-content"></div>
-        <aside class="space-sidebar"><section><h2>个人资料</h2><p id="author-uid"></p><p id="author-birthday" hidden></p></section></aside>
+        <aside class="space-sidebar">
+          <button class="charge-card" data-login="充电" data-login-only aria-haspopup="dialog">
+            <svg class="charge-lines" viewBox="0 0 160 80" preserveAspectRatio="none" aria-hidden="true">
+              <defs><g id="charge-circuit"><path d="M0 24H36L52 8H138M0 32H40L56 16H160M0 40H42M0 48H40L56 64H138M0 56H36L52 72H160"/><circle cx="142" cy="8" r="4"/><circle cx="142" cy="64" r="4"/></g></defs>
+              <use href="#charge-circuit"/>
+              <use class="charge-fill" href="#charge-circuit"/>
+              <use class="charge-spark" href="#charge-circuit"/>
+            </svg>
+            <span class="charge-label"><svg viewBox="0 0 16 24" aria-hidden="true"><path d="M5 1H15L9 10H15L3 23L6 13H1Z"/></svg>充电</span>
+            <span class="charge-note">充电支持TA</span>
+          </button>
+          <section><h2>个人资料</h2><p id="author-uid" class="profile-row" aria-label="UID"></p><p id="author-birthday" class="profile-row" aria-label="生日" hidden></p></section>
+        </aside>
       </div>
     </section>
     <section aria-label="视频浏览" class="feed">
@@ -124,7 +141,7 @@
       <p id="service-message"></p>
       <a class="secondary" href="/">返回首页</a>
     </section>
-    <footer>哔哩哔哩首页复刻 · 第二组数据库课程项目</footer>
+    <footer>dilidili · 第二组数据库课程项目</footer>
   </main>
   <button class="back-top" aria-label="返回顶部"><svg><use href="#i-top"/></svg>顶部</button>
   <section id="login-popover" class="login-popover" aria-label="登录提示" hidden>

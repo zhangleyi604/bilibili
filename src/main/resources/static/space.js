@@ -29,17 +29,17 @@ async function loadSpace() {
     el('author-name').textContent = author.name;
     el('author-level').textContent = author.level;
     el('author-signature').textContent = author.signature || '这个人很神秘，什么都没有写';
-    el('author-uid').textContent = 'UID　' + author.id;
+    el('author-uid').replaceChildren(icon('uid'), author.id);
     el('author-following').textContent = shortCount(author.following);
     el('author-followers').textContent = shortCount(author.followers);
     el('author-birthday').hidden = !author.birthday;
-    el('author-birthday').textContent = '生日　' + (author.birthday || '');
+    el('author-birthday').replaceChildren(icon('cake'), author.birthday || '');
     const avatar = node('img');
     avatar.alt = author.name + '的头像';
     avatar.onerror = () => el('author-avatar').replaceChildren(node('span', '', Array.from(author.name || 'UP')[0]));
     el('author-avatar').replaceChildren(avatar);
     avatar.src = '/api/authors/' + author.id + '/avatar';
-    document.title = author.name + '的个人空间 - 哔哩哔哩';
+    document.title = author.name + '的个人空间 - dilidili';
     el('space-tabs').replaceChildren(...[['home', '主页', 'tv'], ['uploads', '投稿 ' + author.videos, 'play'], ['lists', '合集和系列 ' + collections.length, 'list']].map(([key, label, symbol]) => {
       const a = link(url(key === 'home' ? {} : { tab: key }), label, key === view ? 'active' : '');
       a.prepend(icon(symbol));

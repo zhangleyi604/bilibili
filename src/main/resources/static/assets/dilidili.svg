@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 100" fill="none">
+  <text x="12" y="80" fill="#fff" font-family="Trebuchet MS,Arial Rounded MT Bold,Arial,sans-serif" font-size="82" font-weight="900" textLength="250" lengthAdjust="spacingAndGlyphs" rotate="-5 3 -4 2 -3 4 -2 3">dilidili</text>
+  <path d="m30 16-9-8m17 8 8-10" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+  <g fill="#fff" transform="translate(25)"><path d="m250 50 10-5 3 10-10 5zm18-7 10-5 3 10-10 5z"/><path d="m255 65 23-7-3 9-13 4z"/></g>
+</svg>

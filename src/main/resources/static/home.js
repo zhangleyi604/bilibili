@@ -178,7 +178,7 @@ async function loadVideo() {
   }
   try {
     const { video, description, compilation, tags } = await api('/videos/' + id);
-    document.title = video.title + ' - 哔哩哔哩';
+    document.title = video.title + ' - dilidili';
     el('video-title').textContent = video.title;
     el('video-meta').textContent = [video.author, shortCount(video.plays) + ' 播放',
       shortCount(video.danmaku) + ' 弹幕', video.publishedAt?.replace('T', ' '), compilation].filter(Boolean).join(' · ');
@@ -230,7 +230,7 @@ async function init() {
     const name = decodeURIComponent(path.split('/')[2]);
     el('service-title').textContent = name;
     el('service-message').textContent = name + '功能尚未接入';
-    document.title = name + ' - 哔哩哔哩';
+    document.title = name + ' - dilidili';
     return;
   }
   if (watching) return loadVideo();
@@ -238,7 +238,7 @@ async function init() {
   const title = search ? (keyword ? '“' + keyword + '” 的搜索结果' : tag ? '标签：' + tag : '搜索视频')
     : authorId ? '投稿视频' : rank ? '每周播放排行榜' : category ? '分区视频' : path === '/latest' ? '最新发布' : path === '/recommend' ? '推荐视频' : '热门视频';
   el('feed-title').textContent = title;
-  if (!home && !authorId) document.title = title + ' - 哔哩哔哩';
+  if (!home && !authorId) document.title = title + ' - dilidili';
   el('feed-note').textContent = rank ? '按本周有效播放次数排序' : '';
   if (!home && !rank) {
     const tabs = node('nav', 'sort-tabs');
@@ -258,7 +258,7 @@ async function init() {
       const a = link('/channel/' + item.id, item.name, item.id === category ? 'active' : '');
       if (item.id === category) {
         el('feed-title').textContent = item.name;
-        document.title = item.name + ' - 哔哩哔哩';
+        document.title = item.name + ' - dilidili';
         a.setAttribute('aria-current', 'page');
       }
       return a;
