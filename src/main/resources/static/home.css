@@ -1,5 +1,6 @@
 :root{--blue:#00aeec;--pink:#fb7299;--ink:#18191c;--muted:#9499a0;--line:#e3e5e7;--wash:#f6f7f8;--gap:20px;font-family:"PingFang SC","Microsoft YaHei",Arial,sans-serif;color:var(--ink);background:#fff}
 *{box-sizing:border-box}
+html{overflow-y:scroll}
 body{margin:0}
 button,input{font:inherit}
 button{cursor:pointer;color:inherit;border:0;background:none}
@@ -106,6 +107,16 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:30px 0}
 .pagination{display:flex;justify-content:center;align-items:center;gap:18px;margin-top:32px}
 .sort-tabs{display:flex;gap:28px;margin:0 0 24px;padding-bottom:14px;border-bottom:1px solid var(--line);font-size:14px;color:#61666d}
 .sort-tabs .active{color:var(--blue)}
+.channel-page .layout{--home-columns:5}
+.channel-page .feed-toolbar{margin:4px 0 26px}
+.channel-page .feed-toolbar h1{display:flex;align-items:center;gap:12px;margin:0;font-size:28px;font-weight:400;line-height:1.5}
+.category-symbol{font-size:26px;color:#f6cb69}
+.channel-page .featured{margin-bottom:56px}
+.channel-page .carousel{grid-row:1;aspect-ratio:2.47;margin-bottom:0;min-height:0}
+.channel-page .card-title{font-weight:400}
+.channel-page .video-grid{row-gap:36px}
+@media(max-width:1000px){.channel-page .layout{--home-columns:4}}
+@media(max-width:700px){.channel-page .feed-toolbar{margin:0 0 18px}.channel-page .feed-toolbar h1{font-size:24px}.channel-page .carousel{margin-bottom:20px}.channel-page .featured{margin-bottom:30px}}
 .search-page .channels{display:none}
 .search-page .feed-toolbar{margin-top:12px}
 .search-page .feed-toolbar h1{font-weight:500}

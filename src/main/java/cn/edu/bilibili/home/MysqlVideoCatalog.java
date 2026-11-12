@@ -48,24 +48,17 @@ class MysqlVideoCatalog {
         if (query.categoryId() != null) {
             sql.append(" AND v.CategoryID = CAST(:category AS UNSIGNED)");
         }
-        if (!query.keyword().isEmpty()) {
-            sql.append("""
-                     AND (LOCATE(:q, v.VideoTitle) > 0 OR LOCATE(:q, v.VideoDescription) > 0
-                          OR LOCATE(:q, u.Name) > 0 OR EXISTS (
-                              SELECT 1
-                    """).append(VIDEO_TAGS).append(" WHERE vt.VideoID = v.VideoID AND LOCATE(:q, t.TagName) > 0))");
-        }
-        if (!query.tag().isEmpty()) {
-            sql.append(" AND EXISTS (SELECT 1 ").append(VIDEO_TAGS)
-                    .append(" WHERE vt.VideoID = v.VideoID AND t.TagName = :tag)");
-        }
+        sql.append(searchWhere(query.keyword(), query.tag()));
         sql.append(switch (query.sort()) {
             case latest -> " ORDER BY v.UploadTime DESC, v.VideoID DESC";
             case popular -> " ORDER BY Plays DESC, v.VideoID ASC";
+            case danmaku -> " ORDER BY Danmaku DESC, v.VideoID ASC";
             case favorites -> " ORDER BY (SELECT COUNT(*) FROM collectvideotable cv WHERE cv.VideoID = v.VideoID) DESC, v.VideoID ASC";
             case sequence -> " ORDER BY v.VideoID ASC";
             case reverse -> " ORDER BY v.VideoID DESC";
-            case recommend -> " ORDER BY COALESCE(v.VideoContent = :featured, 0) DESC, CRC32(CONCAT(v.VideoID, ':', :day)), v.VideoID ASC";
+            case recommend -> query.keyword().isEmpty()
+                    ? " ORDER BY COALESCE(v.VideoContent = :featured, 0) DESC, CRC32(CONCAT(v.VideoID, ':', :day)), v.VideoID ASC"
+                    : " ORDER BY (v.VideoTitle = :q) DESC, (LOCATE(:q, v.VideoTitle) > 0) DESC, Plays DESC, v.VideoID ASC";
         }).append(" LIMIT :limit OFFSET :offset");
         var statement = jdbc.sql(sql.toString()).param("limit", query.limit()).param("offset", query.offset());
         if (query.authorId() != null) {
@@ -81,10 +74,44 @@ class MysqlVideoCatalog {
         if (!query.tag().isEmpty()) {
             statement.param("tag", query.tag());
         }
-        if (query.sort() == Sort.recommend) {
+        if (query.sort() == Sort.recommend && query.keyword().isEmpty()) {
             statement.param("day", today().toString()).param("featured", "media/videos/20260619_035713.mp4");
         }
         return statement.query(MysqlVideoCatalog::readVideo).list();
+    }
+
+    private static String searchWhere(String keyword, String tag) {
+        return (keyword.isEmpty() ? "" : " AND (LOCATE(:q, v.VideoTitle) > 0 OR LOCATE(:q, v.VideoDescription) > 0"
+                + " OR LOCATE(:q, u.Name) > 0 OR EXISTS (SELECT 1 " + VIDEO_TAGS
+                + " WHERE vt.VideoID = v.VideoID AND LOCATE(:q, t.TagName) > 0))")
+                + (tag.isEmpty() ? "" : " AND EXISTS (SELECT 1 " + VIDEO_TAGS
+                + " WHERE vt.VideoID = v.VideoID AND t.TagName = :tag)");
+    }
+
+    SearchResult search(String keyword, String tag, UserSort userSort, int offset, int size) {
+        var count = jdbc.sql("SELECT COUNT(*) FROM (" + PUBLIC_VIDEOS + searchWhere(keyword, tag) + ") results");
+        if (!keyword.isEmpty()) count.param("q", keyword);
+        if (!tag.isEmpty()) count.param("tag", tag);
+        long totalVideos = count.query(Long.class).single();
+        String match = " FROM usertable u LEFT JOIN userleveltable l ON l.LevelID = u.LevelID WHERE LOCATE(:q, u.Name) > 0";
+        String userKeyword = keyword.isEmpty() ? tag : keyword;
+        long totalUsers = jdbc.sql("SELECT COUNT(*)" + match).param("q", userKeyword).query(Long.class).single();
+        var users = jdbc.sql("""
+                SELECT u.UID, u.Name, u.Signature, l.LevelName,
+                  (SELECT COUNT(*) FROM relationtable r WHERE r.TargetUID = u.UID AND r.RelationType = 0) AS Followers,
+                  (SELECT COUNT(*) FROM videotable v WHERE v.UID = u.UID
+                    AND v.VideoStatus = 'published' AND v.VisibleStatus = 'public') AS Videos
+                """ + match + switch (userSort) {
+                    case defaultOrder -> " ORDER BY (u.Name = :q) DESC, Followers DESC";
+                    case followersDesc -> " ORDER BY Followers DESC";
+                    case followersAsc -> " ORDER BY Followers ASC";
+                    case levelDesc -> " ORDER BY CAST(SUBSTRING(l.LevelName, 3) AS UNSIGNED) DESC";
+                    case levelAsc -> " ORDER BY CAST(SUBSTRING(l.LevelName, 3) AS UNSIGNED) ASC";
+                } + ", u.UID ASC LIMIT :size OFFSET :offset")
+                .param("q", userKeyword).param("size", size).param("offset", offset)
+                .query((rs, row) -> new SearchUser(rs.getString("UID"), rs.getString("Name"),
+                        rs.getString("Signature"), rs.getString("LevelName"), rs.getLong("Followers"), rs.getLong("Videos"))).list();
+        return new SearchResult(totalVideos, totalUsers, users, offset + users.size() < totalUsers);
     }
 
     Optional<Video> findVideo(String id) {
@@ -158,7 +185,10 @@ class MysqlVideoCatalog {
         return LocalDate.now(ZoneId.of("Asia/Shanghai"));
     }
 
-    enum Sort { recommend, latest, popular, favorites, sequence, reverse }
+    enum Sort { recommend, latest, popular, danmaku, favorites, sequence, reverse }
+    enum UserSort { defaultOrder, followersDesc, followersAsc, levelDesc, levelAsc }
+    record SearchUser(String id, String name, String signature, String level, long followers, long videos) {}
+    record SearchResult(long totalVideos, long totalUsers, List<SearchUser> users, boolean hasMore) {}
     record Category(String id, String name) {}
     record Author(String id, String name, String signature, String headUrl, String birthday,
                   String level, long following, long followers, long videos) {}

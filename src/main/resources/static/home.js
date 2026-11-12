@@ -9,7 +9,7 @@ const watching = path.startsWith('/video/');
 const service = path.startsWith('/service/');
 const category = path.startsWith('/channel/') ? path.split('/')[2] : null;
 const authorId = path.startsWith('/space/') ? path.split('/')[2] : null;
-const sort = ['popular', 'latest', 'recommend'].includes(params.get('sort')) ? params.get('sort')
+const sort = ['popular', 'latest', 'recommend', 'danmaku', 'favorites'].includes(params.get('sort')) ? params.get('sort')
   : path === '/popular' ? 'popular' : path === '/latest' || authorId ? 'latest' : 'recommend';
 const page = Math.min(10000, Math.max(0, Number.parseInt(params.get('page'), 10) || 0));
 const keyword = params.get('keyword') || '';
@@ -108,7 +108,7 @@ function pageUrl(changes) {
 }
 
 function renderCards() {
-  const count = home ? (narrow.matches ? 4 : wide.matches ? 8 : 6) : 0;
+  const count = home ? (narrow.matches ? 4 : wide.matches ? 8 : 6) : category && !page ? (narrow.matches ? 2 : 3) : 0;
   el('top-cards').replaceChildren(...items.slice(0, count).map(card));
   el('video-grid').replaceChildren(...items.slice(count).map(card));
 }
@@ -152,15 +152,17 @@ async function loadFeed(requestedPage = page) {
     }
     const result = await api('/videos?' + query);
     items = result.items;
+    if (category) el('featured').hidden = Boolean(page) || !items.length;
     renderCards();
     status(items.length ? '' : search ? '没有找到相关视频，试试其他关键词'
       : authorId ? '这位作者暂未发布公开视频' : category ? '本分区暂无视频，敬请期待后续更新' : '暂无视频');
-    if (home) {
-      slides = [{ title: '每一次相遇，都有新的精彩', coverUrl: '/assets/carousel.webp', category: '热门' }, ...items.slice(0, 4)];
+    if (home || category && !page && items.length) {
+      slides = home ? [{ title: '每一次相遇，都有新的精彩', coverUrl: '/assets/carousel.webp', category: '热门' }, ...items.slice(0, 4)] : items.slice(0, 4);
       slideIndex = 0;
       renderSlide();
       el('refresh').onclick = () => loadFeed(result.hasMore ? requestedPage + 1 : 0);
-    } else if (page || result.hasMore) {
+    }
+    if (!home && (page || result.hasMore)) {
       if (page) el('pagination').append(link(pageUrl({ page: page - 1 }), '上一页', 'secondary'));
       el('pagination').append(node('span', '', '第 ' + (page + 1) + ' 页'));
       if (result.hasMore) el('pagination').append(link(pageUrl({ page: page + 1 }), '下一页', 'secondary'));
@@ -214,7 +216,8 @@ async function loadVideo() {
 }
 
 async function init() {
-  document.body.classList.toggle('inner-page', !home);
+  document.body.classList.toggle('inner-page', !home && !category);
+  document.body.classList.toggle('channel-page', Boolean(category));
   document.body.classList.toggle('search-page', search);
   document.body.classList.toggle('author-page', Boolean(authorId));
   document.querySelector('.channels').hidden = watching || service || Boolean(authorId);
@@ -223,6 +226,7 @@ async function init() {
   el('video-page').hidden = !watching;
   el('service-page').hidden = !service;
   el('featured').hidden = !home;
+  el('refresh').hidden = Boolean(category);
   el('feed-toolbar').hidden = home;
   el('rank-list').hidden = !rank;
   el('video-grid').hidden = rank;
@@ -236,12 +240,17 @@ async function init() {
   }
   if (watching) return loadVideo();
   if (authorId) return loadSpace();
+  if (search) return loadSearch();
   const title = search ? (keyword ? '“' + keyword + '” 的搜索结果' : tag ? '标签：' + tag : '搜索视频')
     : authorId ? '投稿视频' : rank ? '每周播放排行榜' : category ? '分区视频' : path === '/latest' ? '最新发布' : path === '/recommend' ? '推荐视频' : '热门视频';
   el('feed-title').textContent = title;
   if (!home && !authorId) document.title = title + ' - dilidili';
   el('feed-note').textContent = rank ? '按本周有效播放次数排序' : '';
-  if (!home && !rank) {
+  if (category) {
+    el('feed-toolbar').querySelector('a').hidden = true;
+    document.querySelector('.carousel').setAttribute('aria-label', '分区精选视频');
+  }
+  if (!home && !rank && !category) {
     const tabs = node('nav', 'sort-tabs');
     tabs.setAttribute('aria-label', '视频排序');
     for (const [key, label] of [['recommend', '综合排序'], ['popular', '最多播放'], ['latest', '最新发布']]) {
@@ -259,6 +268,10 @@ async function init() {
       const a = link('/channel/' + item.id, item.name, item.id === category ? 'active' : '');
       if (item.id === category) {
         el('feed-title').textContent = item.name;
+        if (category) {
+          const symbols = { '娱乐': '🪄', '音乐': '🎵', '游戏': '🎮', '知识': '📚', '美食': '🍜', '动画': '🎨', '旅行': '🧳' };
+          el('feed-title').prepend(node('span', 'category-symbol', symbols[item.name] || '✦'));
+        }
         document.title = item.name + ' - dilidili';
         a.setAttribute('aria-current', 'page');
       }
@@ -272,7 +285,7 @@ async function init() {
 el('prev-slide').onclick = () => { if (slides.length) { slideIndex = (slideIndex + slides.length - 1) % slides.length; renderSlide(); } };
 el('next-slide').onclick = () => { if (slides.length) { slideIndex = (slideIndex + 1) % slides.length; renderSlide(); } };
 document.querySelector('.back-top').onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' });
-if (home) {
+if (home || category) {
   narrow.addEventListener('change', renderCards);
   wide.addEventListener('change', renderCards);
 }

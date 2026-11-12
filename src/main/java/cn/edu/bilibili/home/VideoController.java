@@ -58,6 +58,18 @@ class VideoController {
         return new VideoPage(items, results.size() > size);
     }
 
+    @GetMapping("/search")
+    MysqlVideoCatalog.SearchResult search(@RequestParam(defaultValue = "") String q,
+                                         @RequestParam(defaultValue = "") String tag,
+                                         @RequestParam(defaultValue = "defaultOrder") MysqlVideoCatalog.UserSort userSort,
+                                         @RequestParam(defaultValue = "0") int page,
+                                         @RequestParam(defaultValue = "20") int size) {
+        if (q.length() > 80 || tag.length() > 80 || page < 0 || page > 10000 || size < 1 || size > 20) {
+            throw new ResponseStatusException(BAD_REQUEST, "分页或检索参数超出范围");
+        }
+        return catalog.search(q.strip(), tag.strip(), userSort, page * size, size);
+    }
+
     @GetMapping("/authors/{id}")
     MysqlVideoCatalog.Author author(@PathVariable String id) {
         return catalog.findAuthor(validId(id))
