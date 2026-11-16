@@ -5,12 +5,12 @@
 .comments-heading button { border:0;background:none;font-size:14px;color:#9499a0;padding:0;cursor:pointer; }
 .comments-heading button[aria-pressed=true] { color:#18191c; }
 .comments-divider { color:#9499a0; }
-.comment-compose { display:flex;gap:18px;align-items:center;margin-bottom:34px; }
-.guest-avatar { display:grid;place-items:center;width:48px;height:48px;flex-shrink:0;border-radius:50%;background:#e6e8f0;color:#b9bdc7;font-size:28px; }
-.comment-compose>button { flex:1;border:0;background:#f1f2f3;border-radius:6px;height:64px;font-size:13px;color:#9499a0;cursor:pointer; }
+.comment-compose { display:flex;gap:16px;align-items:center;margin-bottom:34px;width:100%;padding-left:16px;box-sizing:border-box; }
+.guest-avatar { display:block;object-fit:cover;width:48px;height:48px;flex-shrink:0;border-radius:50%;background:#e6e8f0;color:#b9bdc7;font-size:28px; }
+.comment-compose>button { flex:1;border:0;background:#f1f2f3;border-radius:6px;height:50px;font-size:13px;color:#9499a0;cursor:pointer; }
 .comment-compose b { display:inline-block;padding:6px 10px;background:#00aeec;color:white;border-radius:4px;font-weight:400;margin:0 3px; }
-.comment-entry { display:flex;gap:20px;padding:0 0 24px;margin:0 0 24px; }
-.comment-avatar { width:40px;height:40px;flex:0 0 40px;border-radius:50%;overflow:hidden;background:#f1f2f3;display:grid;place-items:center;color:#9499a0;font-size:18px; }
+.comment-entry { display:flex;gap:16px;padding:0 0 24px 16px;margin:0 0 24px; }
+.comment-avatar { width:48px;height:48px;flex:0 0 48px;border-radius:50%;overflow:hidden;background:#f1f2f3;display:grid;place-items:center;color:#9499a0;font-size:18px; }
 .comment-avatar img { width:100%;height:100%;object-fit:cover; }
 .comment-body { flex:1;min-width:0;border-bottom:1px solid #e3e5e7;padding-bottom:20px; }
 .comment-byline { display:flex;align-items:center;gap:8px;color:#61666d;font-size:13px;line-height:24px; }
@@ -23,7 +23,7 @@
 .comment-actions button:hover { color:#00aeec; }.comment-actions .comment-options { margin-left:auto;opacity:0; }.comment-entry:hover .comment-options,.comment-reply:hover .comment-options,.comment-options:focus-visible { opacity:1; }
 .comment-replies { margin-top:16px; }.comment-reply { display:flex;gap:10px;margin:14px 0; }.comment-reply .comment-avatar { width:24px;height:24px;flex-basis:24px;font-size:12px; }.comment-reply .comment-body { border:0;padding:0; }.comment-reply .comment-content { margin:2px 0 8px;font-size:14px; }.comment-reply .comment-byline { font-size:12px; }
 .comment-view-replies { border:0;background:none;color:#9499a0;font-size:13px;padding:0;cursor:pointer; }.comment-view-replies:hover { color:#00aeec; }
-.comments-more { width:calc(100% - 60px);margin-left:60px;padding:16px;background:#dff6fd;color:#00aeec;border:0;border-radius:5px;cursor:pointer;font-size:14px; }.comments-empty { color:#9499a0;text-align:center;padding:20px; }
+.comments-more { width:calc(100% - 80px);margin-left:80px;padding:16px;background:#dff6fd;color:#00aeec;border:0;border-radius:5px;cursor:pointer;font-size:14px; }.comments-empty { color:#9499a0;text-align:center;padding:20px; }
 .watch-layout>.watch-main { position:sticky;top:min(76px,calc(100vh - var(--watch-main-height, 1600px) - 20px));align-self:start; }
 #related-extra { display:grid;gap:18px;margin-top:18px; }#related-extra .card { display:grid;grid-template-columns:140px minmax(0,1fr);column-gap:10px; }#related-extra .card-video { display:contents; }#related-extra .card-cover { grid-row:span 2; }#related-extra .card-title { font-size:14px;margin:0; }#related-extra .card-byline { margin-top:8px; }#related-extra .card-stats span { display:none; }
 .related-expand { width:100%;background:#f1f2f3;border:0;border-radius:5px;padding:12px;margin-top:18px;color:#18191c;font-size:13px;cursor:pointer; }.related-expand:hover { background:#e3e5e7; }
@@ -36,9 +36,9 @@
 .scroll-mini .mini-drag-handle { position:absolute;left:0;right:42px;top:0;height:30px;display:block;z-index:9;cursor:move;touch-action:none; }
 .scroll-mini .trial-ended { font-size:12px;gap:10px;padding:12px;text-align:center; }.scroll-mini .trial-ended button { font-size:12px;padding:5px 9px; }
 @media(max-width:1000px){#related-extra .card{grid-template-columns:110px minmax(0,1fr);}.comment-actions{gap:14px;}}
-@media(max-width:800px){.watch-layout>.watch-main{position:static;}.comment-entry{gap:12px;}.comment-actions{gap:12px;flex-wrap:wrap;}.comments-more{width:100%;margin-left:0;}.comment-content{font-size:14px;}}
+@media(max-width:800px){.watch-layout>.watch-main{position:static;}.comment-entry{gap:12px;padding-left:0;}.comment-compose{gap:12px;}.comment-actions{gap:12px;flex-wrap:wrap;}.comments-more{width:100%;margin-left:0;}.comment-content{font-size:14px;}}
 
-.comment-compose { width:96%; }
+
 .player-shell .mini-play-toggle { display:none; }
 .player-shell.scroll-mini .big-play { display:none; }
 .player-shell.scroll-mini .mini-play-toggle { position:absolute;display:flex;align-items:center;justify-content:center;left:50%;top:50%;transform:translate(-50%,-50%);z-index:8;padding:0;border:0;background:none;color:#fff;opacity:0;pointer-events:none;transition:opacity .12s ease; }
@@ -47,3 +47,25 @@
 .mini-play-toggle .mini-when-playing,.scroll-mini[data-playing="true"] .mini-play-toggle .mini-when-paused { display:none; }
 .scroll-mini[data-playing="true"] .mini-play-toggle .mini-when-playing { display:block; }
 @media(max-width:800px){.comment-compose{width:100%;}}
+
+.watch-mini-toggle { position:fixed;right:12px;bottom:88px;z-index:90;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;width:42px;height:56px;padding:6px;border:1px solid #e3e5e7;border-radius:9px;background:#fff;color:#18191c;font-size:12px;cursor:pointer; }
+.watch-mini-toggle svg { width:25px;height:25px; }
+.watch-mini-toggle:hover { background:#f6fbfd; }
+#episodes-control .fullscreen-collection { bottom:calc(100% + 20px);left:50%;right:auto;max-height:min(55vh,400px);width:260px;font-size:12px; }
+@media(max-width:800px){.watch-mini-toggle{display:none;}.comment-compose{padding-left:0;}}
+
+/* Keep the guest composer, top-level avatars and reply column on shared guides. */
+.comment-reply .comment-byline { display:inline-flex;vertical-align:baseline; }
+.comment-reply .comment-content { display:inline;margin:0 0 0 12px;line-height:1.9; }
+.comment-reply .comment-actions { margin-top:10px; }
+/* Fade the login-gated preview itself, leaving the login button fully visible. */
+#comment-list[data-preview="true"] {
+  max-height:520px;overflow:hidden;
+  -webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 calc(100% - 180px),transparent 100%);
+  mask-image:linear-gradient(to bottom,#000 0%,#000 calc(100% - 180px),transparent 100%);
+}
+#comment-list[data-preview="true"] + .comments-more { margin-top:24px; }
+
+.watch-mini-toggle[aria-pressed="true"] { color:#00aeec; }
+
+.watch-mini-toggle[hidden] { display:none!important; }

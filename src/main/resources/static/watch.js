@@ -88,20 +88,14 @@
   player.addEventListener('seeking', () => { hideDanmakuActions(); shown.clear(); el('danmaku-overlay').replaceChildren(); lastTick = performance.now(); });
   player.addEventListener('seeked', () => { lastVideoTime = player.currentTime; lastTick = performance.now(); });
   el('seek').oninput = () => { if (Number.isFinite(player.duration)) { player.currentTime = player.duration * el('seek').value / 100; el('seek').setAttribute('style', '--seek-progress:' + el('seek').value + '%'); } };
-  el('playback-rate').onclick = () => { el('speed-control').dataset.open = el('speed-control').dataset.open === 'true' ? 'false' : 'true'; };
   player.addEventListener('ratechange', () => { if (player.playbackRate !== 1) player.playbackRate = 1; });
   el('volume').oninput = e => { player.volume = Number(e.target.value); player.muted = false; el('volume-value').textContent = Math.round(player.volume * 100); };
   player.addEventListener('volumechange', () => { el('mute-toggle').dataset.muted = String(player.muted || player.volume === 0); el('mute-toggle').setAttribute('aria-label', player.muted ? '取消静音' : '静音'); el('volume-value').textContent = player.muted ? '0' : Math.round(player.volume * 100); el('volume').value = player.muted ? 0 : player.volume; });
   el('mute-toggle').onclick = () => { player.muted = !player.muted; el('mute-toggle').dataset.muted = String(player.muted); };
   el('quality').onclick = () => notice('当前播放原始文件，暂无其他清晰度');
-  for (const [trigger, wrapper] of [['subtitle-toggle','subtitle-control'], ['settings-toggle','settings-control']]) {
-    el(trigger).onclick = () => { const open = el(wrapper).dataset.open !== 'true'; el(wrapper).dataset.open = String(open); el(trigger).setAttribute('aria-expanded', String(open)); };
-    el(wrapper).addEventListener('mouseleave', () => el(wrapper).dataset.open = 'false');
-  }
-  el('speed-control').addEventListener('mouseleave', () => el('speed-control').dataset.open = 'false');
-  el('subtitle-settings-open').onclick = () => { el('subtitle-main').hidden = true; el('subtitle-settings').hidden = false; el('subtitle-control').dataset.open = 'true'; };
+  el('subtitle-settings-open').onclick = () => { el('subtitle-main').hidden = true; el('subtitle-settings').hidden = false; };
   el('subtitle-settings-back').onclick = () => { el('subtitle-main').hidden = false; el('subtitle-settings').hidden = true; };
-  el('more-settings-open').onclick = () => { el('playback-main').hidden = true; el('playback-more').hidden = false; el('settings-control').dataset.open = 'true'; };
+  el('more-settings-open').onclick = () => { el('playback-main').hidden = true; el('playback-more').hidden = false; };
   el('more-settings-back').onclick = () => { el('playback-main').hidden = false; el('playback-more').hidden = true; };
   const subtitleDefaults = { size:'medium', color:'white', outline:'none', position:'bottom', opacity:0.85, scale:true, fade:false };
   function applySubtitleSettings(settings) {
@@ -147,7 +141,6 @@
   };
   document.addEventListener('fullscreenchange', syncFullscreenLayout);
   el('web-fullscreen').onclick = () => { shell.classList.toggle('web-full'); syncFullscreenLayout(); };
-  el('fullscreen-episodes').onclick = () => { if (el('video-collection').hidden) return notice('当前视频未加入合集'); el('fullscreen-collection').hidden = !el('fullscreen-collection').hidden; };
   el('fullscreen-toggle').onclick = async () => { try { if (document.fullscreenElement) await document.exitFullscreen(); else await shell.requestFullscreen(); } catch { notice('当前浏览器无法开启全屏'); } };
   document.addEventListener('keydown', e => { if (e.key === 'Escape') { shell.classList.remove('web-full'); syncFullscreenLayout(); for (const id of ['speed-control','subtitle-control','settings-control']) el(id).dataset.open = 'false'; } if (preferences.keyboard && e.key.toLowerCase() === 'f' && !el('login-dialog').open && !['INPUT','SELECT','TEXTAREA'].includes(document.activeElement.tagName)) { e.preventDefault(); el('fullscreen-toggle').onclick(); } if (preferences.keyboard && e.code === 'Space' && !el('login-dialog').open && !['INPUT','BUTTON','SELECT','TEXTAREA'].includes(document.activeElement.tagName)) { e.preventDefault(); play(); } });
   el('danmaku-toggle').onclick = () => { enabled = !enabled; el('danmaku-toggle').setAttribute('aria-pressed', String(enabled)); el('danmaku-toggle').dataset.enabled = String(enabled); el('danmaku-overlay').hidden = !enabled; if (!enabled) hideDanmakuActions(); };
@@ -174,7 +167,13 @@
     const { video, description, tags } = await api('/videos/' + encodeURIComponent(id));
     startViewerPresence(id);
     document.title = video.title + ' - dilidili'; el('video-title').textContent = video.title;
-    el('video-meta').textContent = '▷ ' + shortCount(video.plays) + '　 ▤ ' + shortCount(video.danmaku) + '　 ' + (video.publishedAt?.replace('T', ' ') || '');
+    const metaStat = (name, count) => {
+      const stat = node('span', 'video-meta-stat');
+      stat.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><use href="/assets/watch-icons.svg?v=2#meta-' + name + '"></use></svg>';
+      stat.append(node('span', '', shortCount(count)));
+      return stat;
+    };
+    el('video-meta').replaceChildren(metaStat('play', video.plays), metaStat('danmaku', video.danmaku), node('time', '', video.publishedAt?.replace('T', ' ') || ''));
     el('video-description').textContent = description || '-';
     el('video-tags').replaceChildren(link('/channel/' + video.categoryId, video.category), ...tags.map(t => link('/search?tag=' + encodeURIComponent(t), t)));
     el('fullscreen-title').textContent = video.title; el('watch-author-name').textContent = video.author; el('watch-author-link').href = '/space/' + video.authorId;
