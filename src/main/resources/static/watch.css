@@ -115,7 +115,7 @@
   transition: opacity .12s ease, visibility .12s;
 }
 .hover-panel::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 24px; }
-.control-popover:hover > .hover-panel, .control-popover:focus-within > .hover-panel, .control-popover[data-open="true"] > .hover-panel { visibility: visible; opacity: 1; pointer-events: auto; }
+.control-popover:hover > .hover-panel { visibility: visible; opacity: 1; pointer-events: auto; }
 .hover-panel strong { display: block; font-size: inherit; font-weight: 500; margin: 0 0 1.4cqw; }
 .player-shell .hover-panel button { font-size: inherit; font-weight: 500; line-height: 1.5; }
 .login-feature-panel { width: clamp(150px, 17cqw, 275px); }
@@ -425,3 +425,9 @@ body.watch-lights-off::after { content: ""; position: fixed; inset: 0; backgroun
 @media(max-width:700px) { .fullscreen-layout .control-row { gap:7px; }.fullscreen-layout .control-row #playback-rate,.fullscreen-layout .control-row #subtitle-toggle { font-size:12px; }.fullscreen-layout #fullscreen-danmaku-slot { margin-left:0; }.fullscreen-layout .danmaku-input .danmaku-login { padding:0 5px; font-size:11px; } }
 
 .fullscreen-layout .player-tools { display:none; }
+
+/* Metadata icons follow the rounded player / danmaku outline in the reference. */
+.video-meta { display:flex;align-items:center;flex-wrap:wrap;gap:16px; }
+.video-meta-stat { display:inline-flex;align-items:center;gap:6px; }
+.video-meta-stat svg { display:block;width:18px;height:18px;flex:none; }
+.watch-main .video-tags a { padding:5px 10px;line-height:20px;border-radius:16px; }

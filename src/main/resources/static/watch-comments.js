@@ -28,11 +28,12 @@ async function setupWatchComments(videoId) {
   async function load(sort) {
     const version=++requestVersion;
     el('comments-hot').setAttribute('aria-pressed',String(sort==='hot'));el('comments-latest').setAttribute('aria-pressed',String(sort==='latest'));
-    list.textContent='正在加载评论…';el('comments-more').hidden=true;
+    list.setAttribute('data-preview','false');list.textContent='正在加载评论…';el('comments-more').hidden=true;
     try {
       const data=await api('/videos/'+encodeURIComponent(videoId)+'/comments?sort='+sort);if(version!==requestVersion)return;
       el('comment-total').textContent=shortCount(data.total);
       list.replaceChildren(...data.items.slice(0,2).map(c=>renderEntry(c)));
+      list.setAttribute('data-preview',String(data.items.length>0));
       if(!data.items.length)list.append(node('p','comments-empty','还没有评论，登录后发条评论吧'));
       el('comments-more').textContent='登录后查看 '+data.total+' 条评论';el('comments-more').hidden=data.total===0;
     }catch {if(version===requestVersion)list.textContent='评论加载失败，请刷新重试';}
@@ -42,8 +43,9 @@ async function setupWatchComments(videoId) {
 }
 
 function setupRelatedExpansion(videos) {
-  const first=videos.slice(0,12),extra=videos.slice(12);
+  const first=videos.slice(0,20),extra=videos.slice(20);
   el('related-videos').replaceChildren(...first.map(card));el('related-extra').replaceChildren(...extra.map(card));
+  el('related-extra').hidden=true;el('related-collapse').hidden=true;
   el('related-expand').hidden=extra.length===0;
   el('related-expand').onclick=()=>{el('related-extra').hidden=false;el('related-expand').hidden=true;el('related-collapse').hidden=false;};
   el('related-collapse').onclick=()=>{
@@ -55,24 +57,28 @@ function setupRelatedExpansion(videos) {
 
 function setupWatchScroll(player,shell) {
   const home=el('player-shell-home'),main=document.querySelector('.watch-main');home.append(shell);
-  let floating=false, dismissed=false, manualPosition=null, drag=null;
+  let floating=false, dismissed=false, revealed=false, pastPlayer=false, manualPosition=null, drag=null;
+  const miniToggle=el('watch-mini-toggle');miniToggle.hidden=true;
+  function syncMiniButton(){miniToggle.hidden=!revealed||!pastPlayer;miniToggle.setAttribute('aria-pressed',String(!dismissed));miniToggle.setAttribute('aria-label',!dismissed?'关闭小窗':'开启小窗');}
   function measure(){main.style.setProperty('--watch-main-height',main.offsetHeight+'px');}
   const resize=new ResizeObserver(measure);resize.observe(main);measure();
   function restore(){
-    if(!floating)return;floating=false;shell.classList.remove('scroll-mini');home.append(shell);home.style.height='';shell.style.removeProperty('left');shell.style.removeProperty('top');shell.style.removeProperty('right');shell.style.removeProperty('bottom');
+    if(!floating)return;floating=false;shell.classList.remove('scroll-mini');home.append(shell);home.style.height='';shell.style.removeProperty('left');shell.style.removeProperty('top');shell.style.removeProperty('right');shell.style.removeProperty('bottom');syncMiniButton();
   }
   function float(){
     if(floating||dismissed||document.fullscreenElement||shell.classList.contains('web-full')||window.innerWidth<801)return;
-    home.style.height=home.getBoundingClientRect().height+'px';document.body.append(shell);shell.classList.add('scroll-mini');floating=true;
+    home.style.height=home.getBoundingClientRect().height+'px';document.body.append(shell);shell.classList.add('scroll-mini');floating=true;revealed=true;syncMiniButton();
     if(manualPosition){shell.style.left=manualPosition.x+'px';shell.style.top=manualPosition.y+'px';shell.style.right='auto';shell.style.bottom='auto';}
   }
   const observer=new IntersectionObserver(entries=>{
     const entry=entries[0];
-    if(entry.isIntersecting||entry.boundingClientRect.top>0){restore();dismissed=false;}
-    else float();
+    pastPlayer=!entry.isIntersecting&&entry.boundingClientRect.top<0;
+    if(pastPlayer)float();else restore();
+    syncMiniButton();
   },{rootMargin:'-76px 0px 0px 0px',threshold:0});observer.observe(home);
   document.addEventListener('fullscreenchange',()=>{if(document.fullscreenElement)restore();});
-  el('mini-close').onclick=()=>{dismissed=true;restore();};
+  miniToggle.onclick=()=>{dismissed=!dismissed;if(dismissed)restore();else if(pastPlayer)float();syncMiniButton();};
+  el('mini-close').onclick=()=>{dismissed=true;restore();syncMiniButton();};
   const handle=el('mini-drag-handle');
   handle.addEventListener('pointerdown',event=>{
     if(!floating||event.button!==0)return;

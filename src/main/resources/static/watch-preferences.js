@@ -20,9 +20,9 @@
   for (const [key,id] of [['scale','dm-scale'],['subtitleSafe','dm-subtitle-safe'],['smart','dm-smart']]) el(id).onchange = e => { dm[key] = e.target.checked; applyDm(); };
   for (const key of ['area','opacity','size','speed']) el('dm-' + key).oninput = e => { dm[key] = Number(e.target.value); applyDm(); };
   for (const value of ['normal','more','overlap']) el('dm-density-' + value).onclick = () => { dm.density = value; applyDm(); };
-  function advanced() { el('dm-settings-main').hidden = true; el('dm-settings-advanced').hidden = false; el('danmaku-control').dataset.open = 'true'; }
+  function advanced() { el('dm-settings-main').hidden = true; el('dm-settings-advanced').hidden = false; }
   el('dm-advanced-open').onclick = advanced;
-  el('dm-keywords-open').onclick = () => { el('dm-settings-main').hidden = true; el('dm-settings-advanced').hidden = true; el('dm-settings-keywords').hidden = false; el('danmaku-control').dataset.open = 'true'; };
+  el('dm-keywords-open').onclick = () => { el('dm-settings-main').hidden = true; el('dm-settings-advanced').hidden = true; el('dm-settings-keywords').hidden = false; };
   el('dm-keywords-back').onclick = () => { el('dm-settings-main').hidden = false; el('dm-settings-keywords').hidden = true; };
   el('dm-sync-rate').onchange = e => { dm.syncRate = e.target.checked; applyDm(); };
   el('dm-font').onchange = e => { dm.font = e.target.value; applyDm(); };
@@ -31,8 +31,6 @@
   el('dm-advanced-back').onclick = () => { el('dm-settings-main').hidden = false; el('dm-settings-advanced').hidden = true; };
   el('dm-keywords-save').onclick = () => { dm.keywords = el('dm-keywords').value.split('\n').map(s => s.trim()).filter(Boolean); applyDm(); el('dm-keywords-back').onclick(); el('danmaku-overlay').replaceChildren(); };
   el('dm-reset').onclick = () => { Object.assign(dm, dmDefaults, { keywords:[] }); applyDm(); };
-  el('danmaku-settings').onclick = () => el('danmaku-control').dataset.open = el('danmaku-control').dataset.open === 'true' ? 'false' : 'true';
-  el('danmaku-control').addEventListener('mouseleave', () => el('danmaku-control').dataset.open = 'false');
   applyDm();
   function applyPlayback() {
     el('mode-next').setAttribute('aria-pressed', String(playback.next)); el('mode-pause').setAttribute('aria-pressed', String(!playback.next)); el('autoplay-next').checked = playback.next;
