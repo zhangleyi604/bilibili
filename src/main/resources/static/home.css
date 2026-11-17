@@ -42,14 +42,16 @@ svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.7;stroke
 .channel-circle{width:43px;height:43px;border-radius:50%;display:grid;place-items:center;color:white}
 .channel-circle svg{width:24px;height:24px}
 .orange{background:#f07746}
-.categories{display:grid;grid-template-columns:repeat(6,minmax(46px,1fr));gap:7px 9px;flex:1}
+.categories{display:grid;grid-template-columns:repeat(8,minmax(64px,1fr));gap:7px 9px;flex:1;min-width:0}
 .categories a,.video-tags a{border:1px solid #f1f2f3;border-radius:6px;background:var(--wash);color:#61666d;padding:4px 6px;min-height:27px;font-size:13px}
-.categories a{text-align:center}
+.categories a{text-align:center;white-space:nowrap;display:flex;align-items:center;justify-content:center;min-height:32px}
 .categories a:hover,.categories a.active,.video-tags a:hover{background:#eaf8fd;color:#008dc2;border-color:#d4f0fa}
 .channel-links{display:grid;grid-template-columns:repeat(2,auto);gap:7px 11px;border-left:1px solid var(--line);padding-left:15px}
 .channel-links a{padding:3px 0;font-size:13px;color:#61666d;white-space:nowrap}
 .channel-links svg{width:17px;height:17px;margin-right:4px}
 .channel-links a:hover{color:var(--blue)}
+@media(max-width:1100px) and (min-width:701px){.channels{gap:14px}.categories{grid-template-columns:repeat(6,minmax(64px,1fr));gap:6px}.channel-links{gap:7px 8px;padding-left:12px}}
+@media(max-width:420px){.channels .categories{flex-basis:100%;grid-template-columns:repeat(4,minmax(0,1fr))}.channels .channel-icons{width:100%;justify-content:flex-start}.channels .channel-links{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .featured{display:grid;gap:22px var(--gap);position:relative;margin-bottom:40px;grid-template-columns:repeat(var(--home-columns),minmax(0,1fr))}
 .carousel{position:relative;grid-column:1 / span 2;grid-row:1 / span 2;min-height:160px;margin-bottom:72px;border-radius:8px;overflow:hidden;background:#28545f;color:white}
 .slide{display:block;position:absolute;inset:0;width:100%;height:100%;padding:0;color:white;text-align:left}

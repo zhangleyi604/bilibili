@@ -60,5 +60,5 @@
     const users = new Set(getUsers()); if (block) { users.add(id); settings.enabled = true; } else users.delete(id);
     settings.disabledUsers = settings.disabledUsers.filter(value=>value!==id); setUsers(users); persist(); render();
   }
-  return { allowed, isBlocked, refresh:render, show, setUserBlocked };
+  return { allowed, isBlocked, setUserBlocked };
 }

@@ -1,6 +1,7 @@
 package cn.edu.bilibili.home;
 
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -32,10 +33,12 @@ class VideoController {
 
     private final MysqlVideoCatalog catalog;
     private final Path mediaRoot;
+    private final OssMedia oss;
     private final ViewerRegistry viewers = new ViewerRegistry();
 
-    VideoController(MysqlVideoCatalog catalog, @Value("${app.media-root}") String mediaRoot) {
+    VideoController(MysqlVideoCatalog catalog, @Value("${app.media-root}") String mediaRoot, OssMedia oss) {
         this.catalog = catalog;
+        this.oss = oss;
         this.mediaRoot = Path.of(mediaRoot).toAbsolutePath().normalize();
     }
 
@@ -88,9 +91,16 @@ class VideoController {
 
     @GetMapping("/authors/{id}/avatar")
     ResponseEntity<Resource> avatar(@PathVariable String id) {
-        Path file = underMediaRoot(author(id).headUrl(), "media/avatars/");
-        return fileResponse(file, MediaTypeFactory.getMediaType(file.getFileName().toString())
-                .filter(type -> type.getType().equals("image")).orElseThrow(() -> missingMedia()));
+        String path = author(id).headUrl();
+        if (path == null || path.isBlank() || path.equals("media/avatars/default.png")) {
+            return defaultAvatar();
+        }
+        return image(path, "avatars/");
+    }
+
+    @GetMapping("/avatar/default")
+    ResponseEntity<Resource> defaultAvatar() {
+        return image("oss://" + oss.bucketName() + "/media/avatars/guest-avatar.gif", "avatars/");
     }
 
     @GetMapping("/ranks/weekly")
@@ -109,7 +119,7 @@ class VideoController {
         find(id);
         if (!sort.equals("hot") && !sort.equals("latest")) throw new ResponseStatusException(BAD_REQUEST, "无效的评论排序");
         if (sort.equals("latest")) throw new ResponseStatusException(UNAUTHORIZED, "登录后查看最新评论");
-        return catalog.comments(id, false);
+        return catalog.comments(id);
     }
 
     @PostMapping("/videos/{id}/viewers")
@@ -154,7 +164,13 @@ class VideoController {
             return ResponseEntity.ok().contentType(MediaType.IMAGE_JPEG)
                     .body(new ClassPathResource("static/assets/local-cover.jpg"));
         }
-        Path file = underMediaRoot(path, "media/covers/");
+        return image(path, "covers/");
+    }
+
+    private ResponseEntity<Resource> image(String path, String directory) {
+        URI remote = oss.location(path, directory);
+        if (remote != null) return redirect(remote);
+        Path file = underMediaRoot(path, "media/" + directory);
         return fileResponse(file, MediaTypeFactory.getMediaType(file.getFileName().toString())
                 .filter(type -> type.getType().equals("image")).orElseThrow(() -> missingMedia()));
     }
@@ -162,6 +178,8 @@ class VideoController {
     @GetMapping("/videos/{id}/stream")
     ResponseEntity<Resource> stream(@PathVariable String id) {
         var path = find(id).videoPath();
+        URI remote = oss.location(path, "videos/");
+        if (remote != null) return redirect(remote);
         Path file = underMediaRoot(path, "media/videos/");
         if (!file.getFileName().toString().endsWith(".mp4")) {
             throw missingMedia();
@@ -171,6 +189,10 @@ class VideoController {
 
     private static ResponseEntity<Resource> fileResponse(Path file, MediaType type) {
         return ResponseEntity.ok().contentType(type).body(new FileSystemResource(file));
+    }
+
+    private static ResponseEntity<Resource> redirect(URI location) {
+        return ResponseEntity.status(302).header("Cache-Control", "no-store").location(location).build();
     }
 
     private Path underMediaRoot(String path, String directory) {

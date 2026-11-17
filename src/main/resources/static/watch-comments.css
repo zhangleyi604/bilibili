@@ -19,7 +19,7 @@
 .comment-content { font-size:15px;color:#18191c;line-height:1.9;white-space:pre-wrap;overflow-wrap:anywhere;margin:10px 0; }
 .comment-actions { display:flex;align-items:center;gap:22px;font-size:12px;color:#9499a0; }
 .comment-actions button { display:inline-flex;align-items:center;gap:5px;border:0;background:none;padding:0;color:inherit;font-size:12px;cursor:pointer; }
-.comment-actions svg { width:16px;height:16px;fill:none; }.comment-dislike svg { transform:rotate(180deg); }
+.comment-actions svg { width:16px;height:16px;fill:none; }
 .comment-actions button:hover { color:#00aeec; }.comment-actions .comment-options { margin-left:auto;opacity:0; }.comment-entry:hover .comment-options,.comment-reply:hover .comment-options,.comment-options:focus-visible { opacity:1; }
 .comment-replies { margin-top:16px; }.comment-reply { display:flex;gap:10px;margin:14px 0; }.comment-reply .comment-avatar { width:24px;height:24px;flex-basis:24px;font-size:12px; }.comment-reply .comment-body { border:0;padding:0; }.comment-reply .comment-content { margin:2px 0 8px;font-size:14px; }.comment-reply .comment-byline { font-size:12px; }
 .comment-view-replies { border:0;background:none;color:#9499a0;font-size:13px;padding:0;cursor:pointer; }.comment-view-replies:hover { color:#00aeec; }
@@ -31,7 +31,7 @@
 .mini-drag-handle,.mini-close { display:none; }
 .player-shell.scroll-mini { position:fixed;z-index:80;width:min(360px,30vw);height:auto;aspect-ratio:16/9;right:74px;bottom:28px;box-shadow:0 4px 20px #0004;border-radius:4px;container-type:inline-size;font-family:"Microsoft YaHei",sans-serif; }
 .scroll-mini .player-follow,.scroll-mini .player-tools,.scroll-mini .trial-tip,.scroll-mini .control-row,.scroll-mini .fullscreen-title { display:none; }
-.scroll-mini .player-controls { padding:0 4px 3px; }.scroll-mini .seek { margin:0; }.scroll-mini .big-play { bottom:35%;right:42%; }.scroll-mini .big-play .watch-icon { width:50px;height:54px; }
+.scroll-mini .player-controls { padding:0 4px 3px; }.scroll-mini .seek { margin:0; }
 .player-shell.scroll-mini .mini-close { position:absolute;right:7px;top:4px;z-index:10;display:block;font-size:24px;line-height:1;color:#fff;background:#0004;border:0;cursor:pointer;padding:2px 5px; }
 .scroll-mini .mini-drag-handle { position:absolute;left:0;right:42px;top:0;height:30px;display:block;z-index:9;cursor:move;touch-action:none; }
 .scroll-mini .trial-ended { font-size:12px;gap:10px;padding:12px;text-align:center; }.scroll-mini .trial-ended button { font-size:12px;padding:5px 9px; }

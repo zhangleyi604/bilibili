@@ -6,19 +6,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>dilidili · 第二组课程项目</title>
   <link rel="stylesheet" href="/home.css?v=11">
-  <link rel="stylesheet" href="/watch.css?v=12">
+  <link rel="stylesheet" href="/watch.css?v=13">
   <link rel="stylesheet" href="/watch-fullscreen.css?v=2">
-  <link rel="stylesheet" href="/watch-comments.css?v=8">
+  <link rel="stylesheet" href="/watch-comments.css?v=9">
   <link rel="stylesheet" href="/space.css?v=9">
   <script src="/space.js?v=5" defer></script>
   <link rel="stylesheet" href="/search.css?v=1">
   <script src="/search.js?v=1" defer></script>
-  <script src="/watch-preferences.js?v=4" defer></script>
-  <script src="/watch-sidebar.js?v=1" defer></script>
+  <script src="/watch-preferences.js?v=5" defer></script>
+  <script src="/watch-sidebar.js?v=2" defer></script>
   <script src="/viewer-presence.js?v=1" defer></script>
   <script src="/watch-comments.js?v=7" defer></script>
-  <script src="/watch.js?v=12" defer></script>
-  <script src="/home.js?v=12" defer></script>
+  <script src="/watch.js?v=13" defer></script>
+  <script src="/home.js?v=13" defer></script>
   <script src="/login.js?v=3" defer></script>
 </head>
 <body>
@@ -183,7 +183,7 @@
           <span class="control-spacer"></span><button data-login="稿件举报" data-login-only><svg class="watch-icon " aria-hidden="true"><use href="/assets/watch-icons.svg#report"/></svg><span>稿件举报</span></button><button data-login="记笔记" data-login-only><svg class="watch-icon " aria-hidden="true"><use href="/assets/watch-icons.svg#note"/></svg><span>记笔记</span></button><button data-login="更多" data-login-only aria-label="更多"><svg class="watch-icon " aria-hidden="true"><use href="/assets/watch-icons.svg#more"/></svg></button>
         </div>
         <p id="video-description"></p><div id="video-tags" class="video-tags"></div>
-        <section id="video-comments" class="video-comments" aria-label="评论"><div class="comments-heading"><h2>评论 <span id="comment-total"></span></h2><button id="comments-hot" aria-pressed="true">最热</button><span class="comments-divider">|</span><button id="comments-latest" aria-pressed="false">最新</button></div><div class="comment-compose"><img class="guest-avatar" src="/assets/guest-avatar.gif" alt="未登录默认头像" width="48" height="48"><button data-login="发表评论" data-login-only>请先 <b>登录</b> 后发表评论 (・ω・)</button></div><div id="comment-list" aria-live="polite"></div><button id="comments-more" class="comments-more" data-login="查看更多评论" data-login-only hidden>登录后查看更多评论</button></section>
+        <section id="video-comments" class="video-comments" aria-label="评论"><div class="comments-heading"><h2>评论 <span id="comment-total"></span></h2><button id="comments-hot" aria-pressed="true">最热</button><span class="comments-divider">|</span><button id="comments-latest" aria-pressed="false">最新</button></div><div class="comment-compose"><img class="guest-avatar" src="/api/avatar/default" onerror="this.onerror=null;this.src='/assets/guest-avatar.gif'" alt="未登录默认头像" width="48" height="48"><button data-login="发表评论" data-login-only>请先 <b>登录</b> 后发表评论 (・ω・)</button></div><div id="comment-list" aria-live="polite"></div><button id="comments-more" class="comments-more" data-login="查看更多评论" data-login-only hidden>登录后查看更多评论</button></section>
       </article>
       <aside class="watch-sidebar">
         <div class="watch-author"><div class="watch-author-heading"><a id="watch-author-link"><img id="watch-avatar" alt="UP主头像"><strong id="watch-author-name"></strong></a><button data-login="发消息" data-login-only class="author-message"><svg class="watch-icon " aria-hidden="true"><use href="/assets/watch-icons.svg#message"/></svg> 发消息</button></div><p id="watch-signature"></p><div><button data-login="充电" data-login-only class="charge-button"><svg class="watch-icon " aria-hidden="true"><use href="/assets/watch-icons.svg#charge"/></svg> 充电</button><button data-login="关注" data-login-only class="follow-button"><svg class="watch-icon " aria-hidden="true"><use href="/assets/watch-icons.svg#plus"/></svg> 关注 <span id="watch-followers"></span></button></div></div>

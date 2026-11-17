@@ -77,7 +77,7 @@
       el('seek').setAttribute('style', '--seek-progress:' + el('seek').value + '%');
     }
     if (enabled && !player.seeking) danmaku.filter(d => d.timestamp <= player.currentTime && d.timestamp > player.currentTime - 0.6 && !shown.has(d.id) && watchSidebar.allowed(d) && watchPreferences.allows(d)).slice(0, watchPreferences.limit()).forEach(d => {
-      shown.add(d.id); const line = node('span', 'flying-danmaku', d.content); line.dataset.userId = d.userId; line.style.top = (Number(d.id) % 5) * 18 + '%'; watchPreferences.decorate(line, d);
+      shown.add(d.id); const line = node('span', 'flying-danmaku', d.content); line.dataset.userId = d.userId; watchPreferences.decorate(line, d);
       line.tabIndex = 0; line.setAttribute('aria-label', d.content + '，查看弹幕操作');
       line.addEventListener('mouseenter', () => showDanmakuActions(d, line)); line.addEventListener('focus', () => showDanmakuActions(d, line));
       line.addEventListener('mouseleave', delayHideActions); line.addEventListener('blur', delayHideActions);
@@ -157,7 +157,7 @@
       button.setAttribute('aria-label', isBlocked ? '取消屏蔽该弹幕的发送者' : '屏蔽该弹幕的发送者');
       button.addEventListener('mouseenter', () => showSenderTooltip(button, isBlocked)); button.addEventListener('focus', () => showSenderTooltip(button, isBlocked));
       button.addEventListener('mouseleave', () => el('sender-tooltip').hidden = true); button.addEventListener('blur', () => el('sender-tooltip').hidden = true);
-      button.onclick = () => { el('sender-tooltip').hidden = true; hideDanmakuActions(); watchSidebar.setUserBlocked(d.userId, !isBlocked); el('danmaku-overlay').querySelectorAll('[data-user-id]').forEach(line => { if (blocked.has(line.dataset.userId)) line.remove(); }); renderDanmaku(); watchSidebar.refresh(); };
+      button.onclick = () => { el('sender-tooltip').hidden = true; watchSidebar.setUserBlocked(d.userId, !isBlocked); };
       row.append(node('span', '', clock(d.timestamp)), node('span', '', d.content), date, button); row.children[1].title = d.content;
       return row;
     }));
@@ -214,7 +214,12 @@
   } catch { el('video-collection').hidden = true; }
   setupWatchComments(id);
   setupWatchScroll(player, shell);
-  try { const result = await api('/videos?size=40'); const related = result.items.filter(v => String(v.id) !== id).slice(0,8); nextVideo = related[0]; el('related-videos').replaceChildren(...related.map(card)); setupRelatedExpansion(result.items.filter(v => String(v.id) !== id)); } catch { el('related-videos').textContent = '暂无推荐视频'; }
+  try {
+    const result = await api('/videos?size=40');
+    const related = result.items.filter(v => String(v.id) !== id);
+    nextVideo = related[0];
+    setupRelatedExpansion(related);
+  } catch { el('related-videos').textContent = '暂无推荐视频'; }
   el('fullscreen-prev').onclick = () => { if (collectionPrevious) location.assign('/video/' + collectionPrevious.id); else notice('没有上一集'); };
   el('fullscreen-next').onclick = () => { if (collectionNext || nextVideo) location.assign('/video/' + (collectionNext || nextVideo).id); else notice('没有下一集'); };
   player.addEventListener('ended', () => { if (el('autoplay-next').checked && (collectionNext || nextVideo) && watched < 30) location.assign('/video/' + (collectionNext || nextVideo).id); });

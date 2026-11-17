@@ -133,7 +133,6 @@ async function loadFeed(requestedPage = page) {
   el('pagination').replaceChildren();
   const query = new URLSearchParams({ page: requestedPage, size: 20, sort });
   if (category) query.set('categoryId', category);
-  if (authorId) query.set('authorId', authorId);
   if (keyword) query.set('q', keyword);
   if (tag) query.set('tag', tag);
   try {
@@ -154,8 +153,7 @@ async function loadFeed(requestedPage = page) {
     items = result.items;
     if (category) el('featured').hidden = Boolean(page) || !items.length;
     renderCards();
-    status(items.length ? '' : search ? '没有找到相关视频，试试其他关键词'
-      : authorId ? '这位作者暂未发布公开视频' : category ? '本分区暂无视频，敬请期待后续更新' : '暂无视频');
+    status(items.length ? '' : category ? '本分区暂无视频，敬请期待后续更新' : '暂无视频');
     if (home || category && !page && items.length) {
       slides = home ? [{ title: '每一次相遇，都有新的精彩', coverUrl: '/assets/carousel.webp', category: '热门' }, ...items.slice(0, 4)] : items.slice(0, 4);
       slideIndex = 0;
@@ -169,49 +167,6 @@ async function loadFeed(requestedPage = page) {
     }
   } catch {
     status('视频加载失败，请稍后重试');
-  }
-}
-
-async function loadVideo() {
-  const player = el('player');
-  const id = encodeURIComponent(path.split('/')[2]);
-  function error(message) {
-    el('player-status').textContent = message;
-    el('player-status').hidden = false;
-  }
-  try {
-    const { video, description, compilation, tags } = await api('/videos/' + id);
-    document.title = video.title + ' - dilidili';
-    el('video-title').textContent = video.title;
-    el('video-meta').textContent = [video.author, shortCount(video.plays) + ' 播放',
-      shortCount(video.danmaku) + ' 弹幕', video.publishedAt?.replace('T', ' '), compilation].filter(Boolean).join(' · ');
-    el('video-description').textContent = description || '';
-    el('video-tags').replaceChildren(link('/channel/' + video.categoryId, video.category),
-      ...tags.map((tag) => link('/search?tag=' + encodeURIComponent(tag), tag)));
-    player.poster = video.coverUrl;
-    player.onerror = () => error('视频文件暂时不可用');
-    if (video.streamUrl) {
-      player.src = video.streamUrl;
-      player.play().catch(async (e) => {
-        if (e.name !== 'NotAllowedError') return;
-        player.muted = true;
-        try {
-          await player.play();
-        } catch {
-          error('请点击播放按钮开始播放');
-        }
-      });
-    } else error('暂无视频文件');
-  } catch (e) {
-    el('video-title').textContent = e.message === '404' ? '视频不存在或已下架' : '视频加载失败';
-    player.hidden = true;
-    error('请返回首页选择其他视频');
-  }
-  try {
-    const result = await api('/videos?size=10');
-    el('related-videos').replaceChildren(...result.items.filter((v) => v.id !== id).slice(0, 8).map(card));
-  } catch {
-    el('related-videos').textContent = '暂无推荐视频';
   }
 }
 
@@ -241,10 +196,9 @@ async function init() {
   if (watching) return loadWatchPage();
   if (authorId) return loadSpace();
   if (search) return loadSearch();
-  const title = search ? (keyword ? '“' + keyword + '” 的搜索结果' : tag ? '标签：' + tag : '搜索视频')
-    : authorId ? '投稿视频' : rank ? '每周播放排行榜' : category ? '分区视频' : path === '/latest' ? '最新发布' : path === '/recommend' ? '推荐视频' : '热门视频';
+  const title = rank ? '每周播放排行榜' : category ? '分区视频' : path === '/latest' ? '最新发布' : path === '/recommend' ? '推荐视频' : '热门视频';
   el('feed-title').textContent = title;
-  if (!home && !authorId) document.title = title + ' - dilidili';
+  if (!home) document.title = title + ' - dilidili';
   el('feed-note').textContent = rank ? '按本周有效播放次数排序' : '';
   if (category) {
     el('feed-toolbar').querySelector('a').hidden = true;
@@ -261,7 +215,6 @@ async function init() {
     el('feed-toolbar').after(tabs);
   }
   loadFeed();
-  if (authorId) return;
   try {
     const categories = await api('/categories');
     el('categories').replaceChildren(link('/', '首页'), ...categories.map((item) => {
@@ -269,7 +222,7 @@ async function init() {
       if (item.id === category) {
         el('feed-title').textContent = item.name;
         if (category) {
-          const symbols = { '娱乐': '🪄', '音乐': '🎵', '游戏': '🎮', '知识': '📚', '美食': '🍜', '动画': '🎨', '旅行': '🧳' };
+          const symbols = { '娱乐': '🪄', '音乐': '🎵', '游戏': '🎮', '知识': '📚', '美食': '🍜', '动画': '🎨', '旅行': '🧳', '科技': '💻', '生活': '☀', '运动': '🏀', '影视': '🎬', '人工智能': '🤖', '时尚美妆': '💄', 'Vlog': '📷', '动物': '🐾' };
           el('feed-title').prepend(node('span', 'category-symbol', symbols[item.name] || '✦'));
         }
         document.title = item.name + ' - dilidili';
