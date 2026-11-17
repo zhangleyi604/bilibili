@@ -59,7 +59,7 @@
   // Audio processing needs a user gesture; do not claim a saved mode is active before activation.
   playback.audio = 'off'; applyPlayback();
   return {
-    allows: d => dm.scroll,
+    allows: () => dm.scroll,
     decorate: (line, d) => { line.setAttribute('style', 'top:' + (Number(d.id) % 5) * 18 + '%;font-size:' + (dm.scale ? dm.size * .022 : dm.size * .22) + (dm.scale ? 'cqw' : 'px') + ';animation-duration:' + ((14 - dm.speed*2) / (dm.syncRate ? player.playbackRate || 1 : 1)) + 's'); },
     limit: () => dm.density === 'normal' ? 3 : dm.density === 'more' ? 6 : 12,
     nativePip: () => playback.nativePip,

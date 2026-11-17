@@ -3,8 +3,8 @@
   const id = path.split('/')[2];
   const read = (key, fallback) => { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } };
   const save = (key, value) => { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} };
-  const trialKey = 'bili-trial-v1:' + id;
-  let watched = Math.max(0, Math.min(30, Number(read(trialKey, 0)) || 0));
+  // Each visit gets its own trial budget; previous visits never lock this one.
+  let watched = 0;
   let blocked = new Set(read('bili-blocked-users', []));
   let danmaku = [], enabled = true, lastTick = performance.now(), lastVideoTime = 0, nextVideo = null, noticeTimer;
   const shown = new Set();
@@ -60,16 +60,27 @@
   player.addEventListener('play', () => { if (watched >= 30) return gate(); lastTick = performance.now(); shell.dataset.playing = 'true'; el('play-toggle').dataset.playing = 'true'; el('big-play').hidden = true; shell.classList.remove('paused-danmaku'); });
   player.addEventListener('pause', () => { shell.dataset.playing = 'false'; el('play-toggle').dataset.playing = 'false'; el('big-play').hidden = false; shell.classList.add('paused-danmaku'); });
   // Count elapsed playing time, never the timeline position or the seek distance.
-  const timer = setInterval(() => {
+  const countTrial = () => {
     const now = performance.now(), elapsed = (now - lastTick) / 1000; lastTick = now;
     if (!player.paused && !player.ended && !player.seeking && player.readyState >= 3 && player.currentTime !== lastVideoTime) {
-      watched = Math.min(30, Math.max(watched, Number(read(trialKey, 0)) || 0) + Math.min(elapsed, Math.max(0, player.currentTime - lastVideoTime) / (player.playbackRate || 1)));
-      save(trialKey, watched);
+      watched = Math.min(30, watched + Math.min(elapsed, Math.max(0, player.currentTime - lastVideoTime) / (player.playbackRate || 1)));
       if (watched >= 30) gate();
     }
     lastVideoTime = player.currentTime;
-  }, 100);
-  window.addEventListener('pagehide', () => { clearInterval(timer); save(trialKey, watched); }, { once: true });
+  };
+  let timer = setInterval(countTrial, 100);
+  window.addEventListener('pagehide', () => clearInterval(timer));
+  // Back/forward navigation can restore the same document from the browser cache.
+  window.addEventListener('pageshow', event => {
+    if (!event.persisted) return;
+    clearInterval(timer);
+    player.pause();
+    watched = 0; lastTick = performance.now(); lastVideoTime = 0;
+    player.currentTime = 0;
+    el('trial-ended').hidden = true;
+    el('trial-tip').hidden = false;
+    timer = setInterval(countTrial, 100);
+  });
   player.addEventListener('timeupdate', () => {
     el('play-time').textContent = clock(player.currentTime) + ' / ' + clock(player.duration);
     if (Number.isFinite(player.duration)) {
@@ -77,7 +88,7 @@
       el('seek').setAttribute('style', '--seek-progress:' + el('seek').value + '%');
     }
     if (enabled && !player.seeking) danmaku.filter(d => d.timestamp <= player.currentTime && d.timestamp > player.currentTime - 0.6 && !shown.has(d.id) && watchSidebar.allowed(d) && watchPreferences.allows(d)).slice(0, watchPreferences.limit()).forEach(d => {
-      shown.add(d.id); const line = node('span', 'flying-danmaku', d.content); line.dataset.userId = d.userId; line.style.top = (Number(d.id) % 5) * 18 + '%'; watchPreferences.decorate(line, d);
+      shown.add(d.id); const line = node('span', 'flying-danmaku', d.content); line.dataset.userId = d.userId; watchPreferences.decorate(line, d);
       line.tabIndex = 0; line.setAttribute('aria-label', d.content + '，查看弹幕操作');
       line.addEventListener('mouseenter', () => showDanmakuActions(d, line)); line.addEventListener('focus', () => showDanmakuActions(d, line));
       line.addEventListener('mouseleave', delayHideActions); line.addEventListener('blur', delayHideActions);
@@ -132,9 +143,11 @@
   const pip = async () => { if (!watchPreferences.nativePip()) { shell.classList.toggle('mini-player'); return; } try { if (!document.pictureInPictureEnabled) return notice('当前浏览器不支持画中画'); if (document.pictureInPictureElement) await document.exitPictureInPicture(); else await player.requestPictureInPicture(); } catch { notice('请先播放视频再开启画中画'); } };
   el('pip-toggle').onclick = pip; el('pip-top').onclick = pip;
   const wide = () => el('video-page').classList.toggle('wide-mode'); el('wide-top').onclick = wide;
+  const wakeFullscreenControls = setupFullscreenIdle(shell);
   const syncFullscreenLayout = () => {
     const fullscreen = document.fullscreenElement === shell || shell.classList.contains('web-full');
     shell.classList.toggle('fullscreen-layout', fullscreen);
+    wakeFullscreenControls();
     if (fullscreen) el('fullscreen-danmaku-slot').append(el('danmaku-compose'));
     else el('danmaku-compose-home').after(el('danmaku-compose'));
     el('fullscreen-toggle').setAttribute('data-tooltip', fullscreen ? '退出全屏 (f)' : '进入全屏 (f)');
@@ -157,7 +170,7 @@
       button.setAttribute('aria-label', isBlocked ? '取消屏蔽该弹幕的发送者' : '屏蔽该弹幕的发送者');
       button.addEventListener('mouseenter', () => showSenderTooltip(button, isBlocked)); button.addEventListener('focus', () => showSenderTooltip(button, isBlocked));
       button.addEventListener('mouseleave', () => el('sender-tooltip').hidden = true); button.addEventListener('blur', () => el('sender-tooltip').hidden = true);
-      button.onclick = () => { el('sender-tooltip').hidden = true; hideDanmakuActions(); watchSidebar.setUserBlocked(d.userId, !isBlocked); el('danmaku-overlay').querySelectorAll('[data-user-id]').forEach(line => { if (blocked.has(line.dataset.userId)) line.remove(); }); renderDanmaku(); watchSidebar.refresh(); };
+      button.onclick = () => { el('sender-tooltip').hidden = true; watchSidebar.setUserBlocked(d.userId, !isBlocked); };
       row.append(node('span', '', clock(d.timestamp)), node('span', '', d.content), date, button); row.children[1].title = d.content;
       return row;
     }));
@@ -214,8 +227,34 @@
   } catch { el('video-collection').hidden = true; }
   setupWatchComments(id);
   setupWatchScroll(player, shell);
-  try { const result = await api('/videos?size=40'); const related = result.items.filter(v => String(v.id) !== id).slice(0,8); nextVideo = related[0]; el('related-videos').replaceChildren(...related.map(card)); setupRelatedExpansion(result.items.filter(v => String(v.id) !== id)); } catch { el('related-videos').textContent = '暂无推荐视频'; }
+  try {
+    const result = await api('/videos?size=40');
+    const related = result.items.filter(v => String(v.id) !== id);
+    nextVideo = related[0];
+    setupRelatedExpansion(related);
+  } catch { el('related-videos').textContent = '暂无推荐视频'; }
   el('fullscreen-prev').onclick = () => { if (collectionPrevious) location.assign('/video/' + collectionPrevious.id); else notice('没有上一集'); };
   el('fullscreen-next').onclick = () => { if (collectionNext || nextVideo) location.assign('/video/' + (collectionNext || nextVideo).id); else notice('没有下一集'); };
   player.addEventListener('ended', () => { if (el('autoplay-next').checked && (collectionNext || nextVideo) && watched < 30) location.assign('/video/' + (collectionNext || nextVideo).id); });
+}
+
+// Fullscreen controls respond to activity, rather than staying visible on hover.
+function setupFullscreenIdle(shell) {
+  let timer;
+  const interacting = () => Array.from(shell.querySelectorAll('.hover-panel')).some(panel => {
+    const style = getComputedStyle(panel);
+    return style.display !== 'none' && style.visibility === 'visible' && Number(style.opacity) > 0;
+  });
+  function wake() {
+    clearTimeout(timer);
+    shell.classList.remove('fullscreen-idle');
+    if (!shell.classList.contains('fullscreen-layout')) return;
+    timer = setTimeout(() => {
+      if (interacting()) { wake(); return; }
+      shell.classList.add('fullscreen-idle');
+    }, 3000);
+  }
+  for (const event of ['pointermove', 'pointerdown', 'keydown', 'focusin', 'focusout']) shell.addEventListener(event, wake);
+  window.addEventListener('pagehide', () => clearTimeout(timer), { once:true });
+  return wake;
 }

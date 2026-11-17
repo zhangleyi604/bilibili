@@ -2,3 +2,6 @@
 /.build-tools/
 /application-local.properties
 /media/
+
+.local/
+build-diagnostic.log

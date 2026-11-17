@@ -175,17 +175,17 @@ class MysqlVideoCatalog {
                 """).param("id", videoId).query(MysqlVideoCatalog::readVideo).list();
     }
 
-    CommentPage comments(String videoId, boolean latest) {
+    CommentPage comments(String videoId) {
         long total = jdbc.sql("SELECT COUNT(*) FROM commenttable WHERE VideoID=CAST(:id AS UNSIGNED) AND CommentStatus='active'")
                 .param("id", videoId).query(Long.class).single();
-        String order = latest ? "c.CommentTime DESC, c.CommentID DESC" : "Likes DESC, c.CommentTime DESC, c.CommentID DESC";
         var comments = jdbc.sql("""
                 SELECT c.CommentID, c.UID, u.Name, l.LevelName, c.Content, c.CommentTime,
                   (SELECT COUNT(*) FROM liketable k WHERE k.LikeTargetType=2 AND k.LikeTargetID=c.CommentID) AS Likes
                 FROM commenttable c JOIN usertable u ON u.UID=c.UID
                 LEFT JOIN userleveltable l ON l.LevelID=u.LevelID
-                WHERE c.VideoID=CAST(:id AS UNSIGNED) AND c.CommentStatus='active' ORDER BY
-                """ + order + " LIMIT 2").param("id", videoId).query((rs, row) -> {
+                WHERE c.VideoID=CAST(:id AS UNSIGNED) AND c.CommentStatus='active'
+                ORDER BY Likes DESC, c.CommentTime DESC, c.CommentID DESC LIMIT 2
+                """).param("id", videoId).query((rs, row) -> {
                     var replies = previewReplies(rs.getString("CommentID"));
                     return new CommentPreview(rs.getString("CommentID"), rs.getString("UID"), rs.getString("Name"),
                         rs.getString("LevelName"), rs.getString("Content"), rs.getObject("CommentTime", LocalDateTime.class),
