@@ -2,3 +2,4 @@
 /.build-tools/
 /application-local.properties
 /media/
+__pycache__/
