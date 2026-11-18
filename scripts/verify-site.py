@@ -59,7 +59,8 @@ for term in ['小满','星河','晚风']:
     counts=[u['followers'] for u in result['users']];assert counts==sorted(counts,reverse=True)
 first=api('/search',q='的',size=20,page=0);second=api('/search',q='的',size=20,page=1)
 assert first['hasMore'] and not {u['id'] for u in first['users']} & {u['id'] for u in second['users']}
-api('/ranks/weekly')
+for kind in ('heat','week','must-watch'):
+    assert isinstance(api('/popular/'+kind)['items'],list)
 for path in ['/search?keyword=test','/popular/rank','/space/'+videos[0]['authorId'],'/video/'+videos[0]['id'],'/channel/'+categories[0]['id']]:
     with get(path) as r:assert r.status==200,path
 print('PASS:',len(videos),'videos;',len(categories),'categories; assets, pages, details, comments, danmaku, collections, media signatures, authors, search sorting and pagination')

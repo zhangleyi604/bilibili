@@ -80,6 +80,16 @@ class VideoController {
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "作者不存在"));
     }
 
+    @GetMapping("/collections")
+    List<MysqlVideoCatalog.CollectionEntry> collectionDirectory() {
+        return catalog.collectionDirectory();
+    }
+
+    @GetMapping("/creators/recommended")
+    List<MysqlVideoCatalog.CreatorEntry> recommendedCreators() {
+        return catalog.recommendedCreators();
+    }
+
     @GetMapping("/authors/{id}/collections")
     List<MysqlVideoCatalog.Compilation> collections(@PathVariable String id) {
         author(id);
@@ -100,10 +110,34 @@ class VideoController {
         return image("oss://" + oss.bucketName() + "/media/avatars/guest-avatar.gif", "avatars/");
     }
 
-    @GetMapping("/ranks/weekly")
-    List<MysqlVideoCatalog.Rank> rank(@RequestParam(required = false) String categoryId) {
-        return catalog.weeklyRank(validId(categoryId), 10);
+    @GetMapping("/popular/heat")
+    PopularIssue popularHeat() {
+        return popularIssue("heat", null, Integer.MAX_VALUE);
     }
+
+    @GetMapping("/popular/week")
+    PopularIssue popularWeek(@RequestParam(required = false) String categoryId) {
+        return popularIssue("week", validId(categoryId), 10);
+    }
+
+    @GetMapping("/popular/must-watch")
+    PopularIssue popularMustWatch() {
+        return new PopularIssue(null, catalog.mustWatch().stream().map(this::popularCard).toList());
+    }
+
+    private PopularIssue popularIssue(String kind, String categoryId, int limit) {
+        return catalog.latestPopularIssue(kind)
+                .map(cutoff -> new PopularIssue(cutoff, catalog.popularScores(kind, cutoff, categoryId, limit)
+                        .stream().map(this::popularCard).toList()))
+                .orElseGet(() -> new PopularIssue(null, List.of()));
+    }
+
+    private PopularCard popularCard(MysqlVideoCatalog.PopularEntry entry) {
+        return new PopularCard(card(entry.video()), entry.score(), entry.position(), entry.reason());
+    }
+
+    record PopularIssue(LocalDateTime cutoff, List<PopularCard> items) {}
+    record PopularCard(VideoCard video, java.math.BigDecimal score, long position, String reason) {}
 
     @GetMapping("/videos/{id}")
     VideoDetail detail(@PathVariable String id) {

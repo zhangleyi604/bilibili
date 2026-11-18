@@ -4,3 +4,4 @@
 /media/
 __pycache__/
 /.local/data-backups/
+*.sql

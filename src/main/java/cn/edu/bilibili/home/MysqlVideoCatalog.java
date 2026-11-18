@@ -1,13 +1,12 @@
 package cn.edu.bilibili.home;
 
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -149,24 +148,102 @@ class MysqlVideoCatalog {
                 .param("id", id).query(String.class).list();
     }
 
-    List<Rank> weeklyRank(String categoryId, int limit) {
-        if (categoryId == null) {
-            return jdbc.sql("CALL sp_get_weekly_play_rank(:limit)").param("limit", limit)
-                    .query(MysqlVideoCatalog::readRank).list();
-        }
-        var monday = today().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+    List<CollectionEntry> collectionDirectory() {
         return jdbc.sql("""
-                SELECT v.VideoID, v.VideoTitle, COUNT(*) AS WeeklyPlayCount,
-                       DENSE_RANK() OVER (ORDER BY COUNT(*) DESC) AS RankNo
-                FROM videoplaysessiontable s JOIN videotable v ON v.VideoID = s.VideoID
-                WHERE s.CountTime >= :start AND s.CountTime < :end
-                  AND v.VideoStatus = 'published' AND v.VisibleStatus = 'public'
-                  AND v.CategoryID = CAST(:category AS UNSIGNED)
-                GROUP BY v.VideoID, v.VideoTitle
-                ORDER BY WeeklyPlayCount DESC, v.VideoID ASC LIMIT :limit
-                """).param("start", monday.atStartOfDay()).param("end", monday.plusWeeks(1).atStartOfDay())
-                .param("category", categoryId).param("limit", limit).query(MysqlVideoCatalog::readRank).list();
+                SELECT c.CompilationID, c.CompilationTitle, u.UID, u.Name,
+                       COUNT(*) AS Videos, MIN(v.VideoID) AS CoverVideo
+                FROM compilationtable c JOIN usertable u ON u.UID = c.UID
+                JOIN videotable v ON v.CompilationID = c.CompilationID AND v.UID = c.UID
+                WHERE v.VideoStatus = 'published' AND v.VisibleStatus = 'public'
+                GROUP BY c.CompilationID, c.CompilationTitle, u.UID, u.Name
+                ORDER BY MAX(v.UploadTime) DESC, c.CompilationID DESC
+                """).query((rs, row) -> new CollectionEntry(rs.getString("CompilationID"),
+                        rs.getString("CompilationTitle"), rs.getString("UID"), rs.getString("Name"),
+                        rs.getLong("Videos"), rs.getString("CoverVideo"))).list();
     }
+
+    List<CreatorEntry> recommendedCreators() {
+        return jdbc.sql("""
+                WITH category_posts AS (
+                    SELECT v.UID, v.CategoryID, COUNT(*) AS Posts, MAX(v.UploadTime) AS Latest,
+                           SUM(COUNT(*)) OVER (PARTITION BY v.UID) AS TotalPosts,
+                           ROW_NUMBER() OVER (PARTITION BY v.UID
+                               ORDER BY COUNT(*) DESC, MAX(v.UploadTime) DESC, v.CategoryID) AS MainCategory
+                    FROM videotable v
+                    WHERE v.VideoStatus = 'published' AND v.VisibleStatus = 'public'
+                    GROUP BY v.UID, v.CategoryID
+                ), picks AS (
+                    SELECT p.*, ROW_NUMBER() OVER (PARTITION BY p.CategoryID
+                        ORDER BY p.Latest DESC, p.Posts DESC, p.UID) AS CategoryPosition
+                    FROM category_posts p WHERE p.MainCategory = 1
+                )
+                SELECT u.UID, u.Name, u.Signature, c.CategoryName, p.TotalPosts,
+                       sample.VideoID AS SampleVideo, sample.VideoTitle AS SampleTitle
+                FROM picks p JOIN usertable u ON u.UID = p.UID
+                JOIN videocategorytable c ON c.CategoryID = p.CategoryID
+                JOIN videotable sample ON sample.VideoID = (
+                     SELECT v.VideoID FROM videotable v
+                     WHERE v.UID = p.UID AND v.CategoryID = p.CategoryID
+                       AND v.VideoStatus = 'published' AND v.VisibleStatus = 'public'
+                     ORDER BY v.UploadTime DESC, v.VideoID DESC LIMIT 1)
+                ORDER BY p.CategoryPosition, p.Latest DESC, p.UID
+                """).query((rs, row) -> new CreatorEntry(rs.getString("UID"), rs.getString("Name"),
+                        rs.getString("Signature"), rs.getString("CategoryName"), rs.getLong("TotalPosts"),
+                        rs.getString("SampleVideo"), rs.getString("SampleTitle"))).list();
+    }
+
+    record CollectionEntry(String id, String title, String authorId, String author, long videos, String coverVideoId) {}
+    record CreatorEntry(String id, String name, String signature, String category, long videos,
+                        String sampleVideoId, String sampleVideoTitle) {}
+
+    Optional<LocalDateTime> latestPopularIssue(String kind) {
+        return jdbc.sql("""
+                SELECT SettlementTime FROM videorankissuetable
+                WHERE RankType=:kind ORDER BY SettlementTime DESC LIMIT 1
+                """).param("kind", kind).query((rs, row) -> rs.getObject("SettlementTime", LocalDateTime.class)).optional();
+    }
+
+    List<PopularEntry> popularScores(String kind, LocalDateTime cutoff, String categoryId, int limit) {
+        String categoryFilter = categoryId == null ? "" : " AND CategoryID = CAST(:category AS UNSIGNED)";
+        var query = jdbc.sql("""
+                WITH ranked AS (
+                  SELECT VideoID, RankScore, ROW_NUMBER() OVER (ORDER BY RankScore DESC, VideoID) AS Position
+                  FROM videorankscoretable WHERE RankType=:kind AND SettlementTime=:cutoff
+                """ + categoryFilter + """
+                )
+                SELECT catalog.*, ranked.RankScore, ranked.Position FROM ranked
+                JOIN (
+                """ + PUBLIC_VIDEOS + """
+                ) catalog USING (VideoID)
+                WHERE ranked.Position <= :limit ORDER BY ranked.Position
+                """).param("kind", kind).param("cutoff", cutoff).param("limit", limit);
+        if (categoryId != null) query.param("category", categoryId);
+        return query.query((rs, row) -> new PopularEntry(readVideo(rs, row), rs.getBigDecimal("RankScore"),
+                rs.getLong("Position"), null)).list();
+    }
+
+    List<PopularEntry> mustWatch() {
+        var items = new java.util.ArrayList<PopularEntry>();
+        for (int i = 0; i < MUST_WATCH.size(); i++) {
+            String[] pick = MUST_WATCH.get(i).split("\\|", 2);
+            long position = i + 1;
+            findVideo(pick[0]).ifPresent(video -> items.add(new PopularEntry(video, null, position, pick[1])));
+        }
+        return items;
+    }
+
+    private static final List<String> MUST_WATCH = loadMustWatch();
+
+    private static List<String> loadMustWatch() {
+        try (var input = new ClassPathResource("must-watch.txt").getInputStream();
+             var reader = new java.io.BufferedReader(new java.io.InputStreamReader(input, java.nio.charset.StandardCharsets.UTF_8))) {
+            return reader.lines().filter(line -> !line.isBlank() && !line.startsWith("#")).toList();
+        } catch (java.io.IOException error) {
+            throw new java.io.UncheckedIOException("Could not load the fixed must-watch list", error);
+        }
+    }
+
+    record PopularEntry(Video video, java.math.BigDecimal score, long position, String reason) {}
 
     List<Video> collectionVideos(String videoId) {
         return jdbc.sql(PUBLIC_VIDEOS + """
@@ -251,11 +328,6 @@ class MysqlVideoCatalog {
                 rs.getString("VideoContent"), rs.getString("CompilationTitle"));
     }
 
-    private static Rank readRank(java.sql.ResultSet rs, int row) throws java.sql.SQLException {
-        return new Rank(rs.getString("VideoID"), rs.getString("VideoTitle"),
-                rs.getLong("WeeklyPlayCount"), rs.getLong("RankNo"));
-    }
-
     private static LocalDate today() {
         return LocalDate.now(ZoneId.of("Asia/Shanghai"));
     }
@@ -272,5 +344,4 @@ class MysqlVideoCatalog {
                  String category, int duration, long plays, long danmaku, LocalDateTime publishedAt,
                  String coverPath, String videoPath, String compilation) {}
     record Query(String categoryId, String authorId, String compilationId, String keyword, String tag, Sort sort, int offset, int limit) {}
-    record Rank(String id, String title, long plays, long rank) {}
 }
