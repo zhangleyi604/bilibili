@@ -14,8 +14,7 @@ const sort = ['popular', 'latest', 'recommend', 'danmaku', 'favorites'].includes
 const page = Math.min(10000, Math.max(0, Number.parseInt(params.get('page'), 10) || 0));
 const keyword = params.get('keyword') || '';
 const tag = params.get('tag') || '';
-const narrow = matchMedia('(max-width: 1000px)');
-const wide = matchMedia('(min-width: 1900px)');
+const narrow = matchMedia('(max-width: 1399.9px)');
 let items = [];
 let slides = [];
 let slideIndex = 0;
@@ -108,7 +107,7 @@ function pageUrl(changes) {
 }
 
 function renderCards() {
-  const count = home ? (narrow.matches ? 4 : wide.matches ? 8 : 6) : category && !page ? (narrow.matches ? 2 : 3) : 0;
+  const count = home ? (narrow.matches ? 4 : 6) : category && !page ? (narrow.matches ? 2 : 3) : 0;
   el('top-cards').replaceChildren(...items.slice(0, count).map(card));
   el('video-grid').replaceChildren(...items.slice(count).map(card));
 }
@@ -155,9 +154,10 @@ async function loadFeed(requestedPage = page) {
     renderCards();
     status(items.length ? '' : category ? '本分区暂无视频，敬请期待后续更新' : '暂无视频');
     if (home || category && !page && items.length) {
-      slides = home ? [{ title: '每一次相遇，都有新的精彩', coverUrl: '/assets/carousel.webp', category: '热门' }, ...items.slice(0, 4)] : items.slice(0, 4);
+      slides = items.slice(0, 4);
       slideIndex = 0;
-      renderSlide();
+      document.querySelector('.carousel').hidden = !slides.length;
+      if (slides.length) renderSlide();
       el('refresh').onclick = () => loadFeed(result.hasMore ? requestedPage + 1 : 0);
     }
     if (!home && (page || result.hasMore)) {
@@ -240,6 +240,5 @@ el('next-slide').onclick = () => { if (slides.length) { slideIndex = (slideIndex
 document.querySelector('.back-top').onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 if (home || category) {
   narrow.addEventListener('change', renderCards);
-  wide.addEventListener('change', renderCards);
 }
 init();

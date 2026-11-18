@@ -192,3 +192,45 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:30px 0}
 .upload-actions button{display:flex;flex-direction:column;align-items:center;gap:6px;padding:4px 0;border-radius:6px;color:#61666d;font-size:12px}
 .upload-actions button:hover{background:var(--wash);color:var(--blue)}
 .upload-actions svg{width:22px;height:22px}
+
+/* Desktop browse proportions, checked against the live Bilibili home/channel CSS.
+   Keep this scoped: search, author spaces and the player have their own layouts. */
+@media(min-width:701px){
+  body:not(.inner-page) .layout{--home-columns:4;max-width:1980px}
+  body:not(.inner-page) .featured,body:not(.inner-page) .video-grid{column-gap:16px}
+  body:not(.inner-page) .card-title{font-size:15px;font-weight:500;line-height:22px;min-height:44px;max-height:44px}
+  body:not(.inner-page) .featured .card-title{height:44px}
+  body:not(.inner-page) .card-byline{font-size:13px;line-height:17px}
+  body:not(.inner-page) .categories a{min-height:28px;font-size:13px}
+  body:not(.inner-page) .channels{min-height:100px}
+  .channel-page .featured{row-gap:48px;margin-bottom:48px}
+  .channel-page .video-grid{row-gap:48px}
+  .channel-page .feed-toolbar{margin:0 0 24px}
+}
+@media(min-width:1140px){
+  body:not(.inner-page) .layout{width:calc(100% - 120px)}
+}
+@media(min-width:1300px) and (max-width:1399.9px){
+  body:not(.inner-page):not(.channel-page) .layout{width:1060px}
+}
+@media(min-width:1367px){
+  body:not(.inner-page) .channels{min-height:110px}
+  body:not(.inner-page) .categories a{font-size:14px}
+}
+@media(min-width:1400px){
+  body:not(.inner-page) .layout{--home-columns:5}
+  body:not(.inner-page) .featured,body:not(.inner-page) .video-grid{column-gap:20px}
+  .channel-page .featured{row-gap:63px;margin-bottom:63px}
+  .channel-page .video-grid{row-gap:63px}
+}
+@media(min-width:1560px){
+  body:not(.inner-page) .layout{width:calc(100% - 280px)}
+}
+@media(min-width:1701px){
+  body:not(.inner-page) .channels{min-height:120px}
+  body:not(.inner-page) .categories a{min-height:32px}
+}
+@media(min-width:2200px){
+  body:not(.inner-page) .channels{min-height:130px}
+  body:not(.inner-page) .categories a{font-size:15px}
+}

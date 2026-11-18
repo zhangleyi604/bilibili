@@ -2,6 +2,11 @@
 /.build-tools/
 /application-local.properties
 /media/
+<<<<<<< HEAD
 
 .local/
 build-diagnostic.log
+=======
+__pycache__/
+/.local/data-backups/
+>>>>>>> 4164a5f6ad9afd065f00d3f77f56a956da4d1d4a

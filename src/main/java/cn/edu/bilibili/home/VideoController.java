@@ -7,7 +7,6 @@ import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
@@ -29,8 +28,6 @@ import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 @RestController
 @RequestMapping("/api")
 class VideoController {
-    private static final String EXPERIMENT_COVER = "media/covers/experiment-1.jpg";
-
     private final MysqlVideoCatalog catalog;
     private final Path mediaRoot;
     private final OssMedia oss;
@@ -160,10 +157,6 @@ class VideoController {
     @GetMapping("/videos/{id}/cover")
     ResponseEntity<Resource> cover(@PathVariable String id) {
         var path = find(id).coverPath();
-        if (EXPERIMENT_COVER.equals(path)) {
-            return ResponseEntity.ok().contentType(MediaType.IMAGE_JPEG)
-                    .body(new ClassPathResource("static/assets/local-cover.jpg"));
-        }
         return image(path, "covers/");
     }
 
