@@ -30,7 +30,7 @@ Spring Boot、MySQL 和原生 HTML/CSS/JavaScript 实现首页、分区、搜索
 
 OSS 媒体路径使用 `oss://bilibili-media/media/videos/分区名视频/文件.mp4`、对应的 `media/covers/分区名视频封面/` 和 `media/avatars/`。后端生成一小时有效的 V4 签名链接，响应不缓存，Bucket 保持私有。`scripts/oss-read-policy.json` 中的 `media/*` 自动覆盖后续新增子目录。
 
-本地实验视频仍支持 `media/videos/...` 相对路径；`app.media-root` 默认指向项目上一层，可用 `BILI_MEDIA_ROOT` 调整。实验视频封面和头像加载失败的回退图片属于运行资源，需要保留。
+媒体接口也支持 `media/videos/...` 本地相对路径；`app.media-root` 默认指向项目上一层，可用 `BILI_MEDIA_ROOT` 调整。当前公开视频使用 OSS，不再包含本地实验视频或其专用封面。
 
 首页分区直接读取分区表；尚无视频的分区保留入口。用户搜索支持昵称关键词、粉丝与等级排序、分页；可用“小满”“星河”“晚风”展示多条匹配，用“的”展示分页。公开视频按数据库中的标签、合集、上传者与互动记录展示。
 
@@ -46,3 +46,7 @@ python scripts/verify-site.py
 ```
 
 最后一项需要网站已启动；其他端口可传入 `--base-url http://127.0.0.1:8082`。检查工具不依赖旧迁移报告，也不会修改数据库。`ViewerRegistryCheck.java` 用于检查观看人数的去重、离开与过期逻辑。
+
+用户等级权限可通过 `python scripts/check-level-permissions.py` 检查，需要本机数据库配置。检查依据课程权限表：Lv0 可浏览、搜索、关注等；Lv1 可点赞、投币、收藏、转发、订阅、拉黑、举报和私信；Lv2 才可评论、回复、发弹幕、投稿、建合集和充电。系统自动创建的默认收藏夹和系统奖励收入不算用户主动行为。发现越权记录时检查命令返回非零状态。
+
+该工具的 `--repair` 参数用于修复演示数据：先在被 Git 忽略的 `target/permission-repair/` 备份，将支持修复的越权行为重新分配给有权限的活跃演示账号，并验证等级、视频信息和互动记录总数。修复同时检查投币数量上限；不支持自动修复的越权类型会在写入前终止。普通检查不会修改数据。

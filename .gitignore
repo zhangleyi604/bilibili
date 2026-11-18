@@ -3,3 +3,4 @@
 /application-local.properties
 /media/
 __pycache__/
+/.local/data-backups/

@@ -57,7 +57,7 @@ class MysqlVideoCatalog {
             case sequence -> " ORDER BY v.VideoID ASC";
             case reverse -> " ORDER BY v.VideoID DESC";
             case recommend -> query.keyword().isEmpty()
-                    ? " ORDER BY COALESCE(v.VideoContent = :featured, 0) DESC, CRC32(CONCAT(v.VideoID, ':', :day)), v.VideoID ASC"
+                    ? " ORDER BY CRC32(CONCAT(v.VideoID, ':', :day)), v.VideoID ASC"
                     : " ORDER BY (v.VideoTitle = :q) DESC, (LOCATE(:q, v.VideoTitle) > 0) DESC, Plays DESC, v.VideoID ASC";
         }).append(" LIMIT :limit OFFSET :offset");
         var statement = jdbc.sql(sql.toString()).param("limit", query.limit()).param("offset", query.offset());
@@ -75,7 +75,7 @@ class MysqlVideoCatalog {
             statement.param("tag", query.tag());
         }
         if (query.sort() == Sort.recommend && query.keyword().isEmpty()) {
-            statement.param("day", today().toString()).param("featured", "media/videos/20260619_035713.mp4");
+            statement.param("day", today().toString());
         }
         return statement.query(MysqlVideoCatalog::readVideo).list();
     }
