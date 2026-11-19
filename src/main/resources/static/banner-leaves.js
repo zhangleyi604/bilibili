@@ -1,6 +1,8 @@
 (() => {
   const banner = document.querySelector('.banner');
-  const browsePage = location.pathname === '/' || location.pathname === '/index.html' || location.pathname.startsWith('/channel/');
+  const path = location.pathname;
+  const browsePage = ['/', '/index.html', '/latest', '/collections', '/creators', '/popular'].includes(path)
+    || path.startsWith('/channel/') || path.startsWith('/popular/');
   if (!banner || !browsePage) return;
 
   const layer = document.createElement('div');
