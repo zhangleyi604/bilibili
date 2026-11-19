@@ -280,67 +280,66 @@ async function loadDiscovery() {
 }
 
 function collectionCard(entry) {
-  const authorUrl = '/space/' + encodeURIComponent(entry.authorId);
-  return discoveryRow({
-    title: entry.title,
-    href: authorUrl + '?tab=collection&collection=' + encodeURIComponent(entry.id),
-    summary: entry.firstTitle ? '首集 · ' + entry.firstTitle : '',
-    authorId: entry.authorId,
-    author: entry.author,
-    coverVideoId: entry.coverVideoId,
-    meta: [node('span', '', shortCount(entry.videos) + ' 个视频'), node('span', '', shortCount(entry.subscribers) + ' 人订阅')]
-  });
-}
-
-function creatorCard(entry) {
-  const videoUrl = '/video/' + encodeURIComponent(entry.sampleVideoId);
-  const sample = link(videoUrl, '代表作 · ' + entry.sampleVideoTitle, 'discovery-sample');
-  sample.title = sample.textContent;
-  return discoveryRow({
-    title: entry.name,
-    href: '/space/' + encodeURIComponent(entry.id),
-    summary: entry.signature?.trim(),
-    authorId: entry.id,
-    coverVideoId: entry.sampleVideoId,
-    coverHref: videoUrl,
-    coverLabel: sample.textContent,
-    meta: [node('span', '', entry.category), node('span', '', shortCount(entry.videos) + ' 个视频'), sample]
-  });
-}
-
-function discoveryRow({ title, href, summary, authorId, author, coverVideoId, coverHref = href, coverLabel = title, meta }) {
+  const id = encodeURIComponent(entry.authorId);
+  const authorUrl = '/space/' + id;
+  const href = authorUrl + '?tab=collection&collection=' + encodeURIComponent(entry.id);
   const row = node('article', 'discovery-row');
   const text = node('div', 'discovery-copy');
   const heading = node('h2', 'discovery-title');
-  heading.append(link(href, title));
+  heading.append(link(href, entry.title));
   text.append(heading);
-  if (summary) text.append(node('p', 'discovery-summary', summary));
+  if (entry.firstTitle) text.append(node('p', 'discovery-summary', '首集 · ' + entry.firstTitle));
 
-  const id = encodeURIComponent(authorId);
-  const profile = link('/space/' + id, null, 'discovery-profile');
-  profile.setAttribute('aria-label', (author || title) + ' 的个人主页');
+  const profile = link(authorUrl, null, 'discovery-profile');
+  profile.setAttribute('aria-label', entry.author + ' 的个人主页');
   const avatar = node('img', 'discovery-avatar');
   avatar.alt = '';
   avatar.loading = 'lazy';
-  avatar.onerror = () => {
-    avatar.hidden = true;
-    profile.hidden = !author;
-  };
+  avatar.onerror = () => { avatar.hidden = true; };
   avatar.src = '/api/authors/' + id + '/avatar';
-  profile.append(avatar);
-  if (author) profile.append(node('span', '', author));
+  profile.append(avatar, node('span', '', entry.author));
   const byline = node('div', 'discovery-meta');
-  byline.append(profile, ...meta);
+  byline.append(profile, node('span', '', shortCount(entry.videos) + ' 个视频'),
+    node('span', '', shortCount(entry.subscribers) + ' 人订阅'));
   text.append(byline);
 
-  const cover = link(coverHref, null, 'card-cover discovery-cover');
-  cover.setAttribute('aria-label', coverLabel);
+  const cover = link(href, null, 'card-cover discovery-cover');
+  cover.setAttribute('aria-label', entry.title);
   const image = node('img');
   image.alt = '';
   image.loading = 'lazy';
   cover.append(image);
-  attachCover(image, '/api/videos/' + encodeURIComponent(coverVideoId) + '/cover', title);
+  attachCover(image, '/api/videos/' + encodeURIComponent(entry.coverVideoId) + '/cover', entry.title);
   row.append(text, cover);
+  return row;
+}
+
+function creatorCard(entry) {
+  const id = encodeURIComponent(entry.id);
+  const profile = '/space/' + id;
+  const row = node('article', 'creator-row');
+  const avatar = link(profile, null, 'creator-avatar');
+  avatar.setAttribute('aria-label', entry.name + ' 的个人主页');
+  const image = node('img');
+  image.alt = '';
+  image.loading = 'lazy';
+  image.onerror = () => avatar.replaceChildren(Array.from(entry.name || 'UP')[0]);
+  image.src = '/api/authors/' + id + '/avatar';
+  avatar.append(image);
+
+  const info = node('div', 'creator-info');
+  const heading = node('h2', 'creator-name');
+  heading.append(link(profile, entry.name));
+  info.append(heading);
+  const signature = entry.signature?.trim();
+  if (signature) info.append(node('p', 'creator-signature', signature));
+  const stats = node('p', 'creator-stats');
+  stats.append(node('span', '', shortCount(entry.videos) + ' 个视频'),
+    node('span', '', shortCount(entry.followers) + ' 位粉丝'));
+  const sample = node('p', 'creator-sample');
+  sample.append('代表作 · ', link('/video/' + encodeURIComponent(entry.sampleVideoId), entry.sampleVideoTitle));
+  info.append(stats, sample);
+  row.append(avatar, info);
   return row;
 }
 

@@ -228,6 +228,8 @@ class MysqlVideoCatalog {
                     FROM category_posts p WHERE p.MainCategory = 1
                 )
                 SELECT u.UID, u.Name, u.Signature, c.CategoryName, p.TotalPosts,
+                       (SELECT COUNT(*) FROM relationtable r
+                         WHERE r.TargetUID = u.UID AND r.RelationType = 0) AS Followers,
                        sample.VideoID AS SampleVideo, sample.VideoTitle AS SampleTitle
                 FROM picks p JOIN usertable u ON u.UID = p.UID
                 JOIN videocategorytable c ON c.CategoryID = p.CategoryID
@@ -239,12 +241,12 @@ class MysqlVideoCatalog {
                 ORDER BY p.CategoryPosition, p.Latest DESC, p.UID
                 """).query((rs, row) -> new CreatorEntry(rs.getString("UID"), rs.getString("Name"),
                         rs.getString("Signature"), rs.getString("CategoryName"), rs.getLong("TotalPosts"),
-                        rs.getString("SampleVideo"), rs.getString("SampleTitle"))).list();
+                        rs.getLong("Followers"), rs.getString("SampleVideo"), rs.getString("SampleTitle"))).list();
     }
 
     record CollectionEntry(String id, String title, String authorId, String author, long videos,
                            String coverVideoId, String firstTitle, long subscribers) {}
-    record CreatorEntry(String id, String name, String signature, String category, long videos,
+    record CreatorEntry(String id, String name, String signature, String category, long videos, long followers,
                         String sampleVideoId, String sampleVideoTitle) {}
 
     Optional<LocalDateTime> latestPopularIssue(String kind) {

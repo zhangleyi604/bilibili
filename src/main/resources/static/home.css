@@ -116,10 +116,18 @@ svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.7;stroke
 .discovery-meta,.discovery-profile{display:flex;align-items:center;gap:8px;min-width:0}
 .discovery-meta{margin-top:12px;gap:8px 14px;flex-wrap:wrap;color:var(--muted);font-size:13px}
 .discovery-meta>span{white-space:nowrap}
-.discovery-profile span,.discovery-sample{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.discovery-profile span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .discovery-avatar{width:24px;height:24px;flex:none;border-radius:50%;object-fit:cover;background:var(--wash)}
 .discovery-row .discovery-cover{display:block;width:100%;aspect-ratio:4/3}
 .discovery-row a:hover{color:var(--blue)}
+.creator-row{display:grid;grid-template-columns:clamp(62px,9vw,84px) minmax(0,1fr);align-items:start;gap:clamp(14px,3vw,24px);padding:22px 0;border-bottom:1px solid var(--line)}
+.creator-avatar{display:grid;place-items:center;aspect-ratio:1;overflow:hidden;border-radius:50%;background:var(--wash);color:var(--blue);font-size:24px}
+.creator-avatar img{width:100%;height:100%;object-fit:cover}
+.creator-info{padding-top:3px}
+.creator-name{margin:0;font-size:21px;line-height:1.4;font-weight:600;overflow-wrap:anywhere}
+.creator-signature,.creator-sample{margin:7px 0 0;color:#61666d;font-size:14px;line-height:1.5;overflow-wrap:anywhere}
+.creator-stats{display:flex;flex-wrap:wrap;gap:6px 16px;margin:9px 0 0;color:var(--muted);font-size:13px}
+.creator-sample a,.creator-row a:hover{color:var(--blue)}
 @media(max-width:550px){.discovery-row{gap:12px;padding-block:16px}.discovery-title{font-size:17px}.discovery-summary{font-size:13px}.discovery-meta{margin-top:8px;gap:5px 10px}}
 body.popular-page main.layout{width:calc(100% - clamp(44px,9.2vw,180px));max-width:1880px}
 @media(min-width:751px){.popular-page .banner{height:clamp(130px,11vw,200px)}}
@@ -208,9 +216,9 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:30px 0}
 .channel-nav-stuck .search:focus-within{background:#fff}
 .navbar .channel-nav-toggle{width:22px;height:32px}
 .channel-nav-toggle svg{width:12px;height:12px;transform:rotate(90deg);transition:transform .18s ease}
-.channel-nav-open .channel-nav-toggle svg{transform:rotate(-90deg)}
+.channel-nav-open .channel-nav-toggle svg{transform:rotate(-90deg);transition-duration:.26s}
 .channel-nav-panel{position:absolute;top:100%;left:0;width:min(560px,calc(100vw - 52px));padding-top:4px;color:var(--ink);visibility:hidden;opacity:0;pointer-events:none;transform:translateY(-5px);transition:opacity .16s,transform .16s,visibility .16s}
-.channel-nav-open .channel-nav-panel{visibility:visible;opacity:1;pointer-events:auto;transform:translateY(0)}
+.channel-nav-open .channel-nav-panel{visibility:visible;opacity:1;pointer-events:auto;transform:translateY(0);transition-duration:.26s}
 .channel-nav-list{margin:0;padding:14px;list-style:none;border:1px solid var(--line);border-radius:10px;background:#fff;box-shadow:0 12px 30px #18191c18;columns:3;column-rule:1px solid var(--line);column-gap:24px;max-height:calc(100dvh - 78px);overflow:auto}
 .channel-nav-list li{break-inside:avoid}
 .channel-nav-list a{display:flex;align-items:center;gap:10px;padding:8px;border-radius:6px;white-space:nowrap}
@@ -237,7 +245,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:30px 0}
 .home-channel-toggle svg{width:13px;height:13px;transform:rotate(90deg);transition:transform .18s ease}
 .home-channel-expanded .home-channel-toggle svg{transform:rotate(-90deg)}
 @media(max-width:700px){.home-channel-row{gap:7px}.home-channel-shortcuts{padding-right:7px}.home-channel-options{grid-template-columns:repeat(auto-fill,minmax(68px,1fr));gap:8px 6px}}
-@media(prefers-reduced-motion:reduce){.navbar.channel-nav-stuck,.home-channel-bar{animation:none}.channel-nav-panel,.channel-nav-toggle svg,.home-channel-viewport,.home-channel-toggle svg{transition:none}}
+@media(prefers-reduced-motion:reduce){.navbar.channel-nav-stuck,.home-channel-bar{animation:none}.channel-nav-panel,.channel-nav-toggle svg,.home-channel-viewport,.home-channel-toggle svg,.channel-nav-open .channel-nav-panel,.channel-nav-open .channel-nav-toggle svg{transition:none}}
 .channel-page .feed-toolbar{margin:4px 0 26px}
 .channel-page .feed-toolbar h1{display:flex;align-items:center;gap:12px;margin:0;font-size:28px;font-weight:400;line-height:1.5}
 .channel-page .feed-toolbar .category-icon{width:36px;height:36px}
