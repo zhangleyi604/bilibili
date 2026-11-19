@@ -225,19 +225,48 @@ class MysqlVideoCatalog {
     List<PopularEntry> mustWatch() {
         var items = new java.util.ArrayList<PopularEntry>();
         for (int i = 0; i < MUST_WATCH.size(); i++) {
-            String[] pick = MUST_WATCH.get(i).split("\\|", 2);
+            var pick = MUST_WATCH.get(i);
             long position = i + 1;
-            findVideo(pick[0]).ifPresent(video -> items.add(new PopularEntry(video, null, position, pick[1])));
+            findVideo(pick.videoId()).ifPresent(video -> items.add(new PopularEntry(video, null, position, pick.reason())));
         }
         return items;
     }
 
-    private static final List<String> MUST_WATCH = loadMustWatch();
+    boolean isMustWatch(String videoId) {
+        return MUST_WATCH.stream().anyMatch(pick -> pick.videoId().equals(videoId));
+    }
 
-    private static List<String> loadMustWatch() {
+    Long bestSiteRank(String videoId, int limit) {
+        // Use the same score and video ID tie-breaker as the public weekly chart.
+        long position = jdbc.sql("""
+                WITH positions AS (
+                    SELECT 1 + (
+                        SELECT COUNT(*) FROM videorankscoretable better
+                        WHERE better.RankType = entry.RankType AND better.SettlementTime = entry.SettlementTime
+                          AND (better.RankScore > entry.RankScore
+                            OR (better.RankScore = entry.RankScore AND better.VideoID < entry.VideoID))
+                    ) AS Position
+                    FROM videorankscoretable entry
+                    JOIN videorankissuetable issue
+                      ON issue.RankType = entry.RankType AND issue.SettlementTime = entry.SettlementTime
+                    WHERE entry.RankType = 'week' AND entry.VideoID = CAST(:id AS UNSIGNED)
+                )
+                SELECT COALESCE(MIN(Position), 0) FROM positions WHERE Position <= :limit
+                """).param("id", videoId).param("limit", limit).query(Long.class).single();
+        return position == 0 ? null : position;
+    }
+
+    private record MustWatchPick(String videoId, String reason) {}
+
+    private static final List<MustWatchPick> MUST_WATCH = loadMustWatch();
+
+    private static List<MustWatchPick> loadMustWatch() {
         try (var input = new ClassPathResource("must-watch.txt").getInputStream();
              var reader = new java.io.BufferedReader(new java.io.InputStreamReader(input, java.nio.charset.StandardCharsets.UTF_8))) {
-            return reader.lines().filter(line -> !line.isBlank() && !line.startsWith("#")).toList();
+            return reader.lines().filter(line -> !line.isBlank() && !line.startsWith("#"))
+                    .map(line -> line.split("\\|", 2))
+                    .map(parts -> new MustWatchPick(parts[0], parts[1]))
+                    .toList();
         } catch (java.io.IOException error) {
             throw new java.io.UncheckedIOException("Could not load the fixed must-watch list", error);
         }
