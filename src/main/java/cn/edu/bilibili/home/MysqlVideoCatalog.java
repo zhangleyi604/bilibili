@@ -92,6 +92,7 @@ class MysqlVideoCatalog {
         if (!keyword.isEmpty()) count.param("q", keyword);
         if (!tag.isEmpty()) count.param("tag", tag);
         long totalVideos = count.query(Long.class).single();
+        long totalCollections = countCollections(keyword, tag);
         String match = " FROM usertable u LEFT JOIN userleveltable l ON l.LevelID = u.LevelID WHERE LOCATE(:q, u.Name) > 0";
         String userKeyword = keyword.isEmpty() ? tag : keyword;
         long totalUsers = jdbc.sql("SELECT COUNT(*)" + match).param("q", userKeyword).query(Long.class).single();
@@ -110,7 +111,7 @@ class MysqlVideoCatalog {
                 .param("q", userKeyword).param("size", size).param("offset", offset)
                 .query((rs, row) -> new SearchUser(rs.getString("UID"), rs.getString("Name"),
                         rs.getString("Signature"), rs.getString("LevelName"), rs.getLong("Followers"), rs.getLong("Videos"))).list();
-        return new SearchResult(totalVideos, totalUsers, users, offset + users.size() < totalUsers);
+        return new SearchResult(totalVideos, totalUsers, totalCollections, users, offset + users.size() < totalUsers);
     }
 
     Optional<Video> findVideo(String id) {
@@ -149,17 +150,66 @@ class MysqlVideoCatalog {
     }
 
     List<CollectionEntry> collectionDirectory() {
-        return jdbc.sql("""
-                SELECT c.CompilationID, c.CompilationTitle, u.UID, u.Name,
-                       COUNT(*) AS Videos, MIN(v.VideoID) AS CoverVideo
-                FROM compilationtable c JOIN usertable u ON u.UID = c.UID
-                JOIN videotable v ON v.CompilationID = c.CompilationID AND v.UID = c.UID
-                WHERE v.VideoStatus = 'published' AND v.VisibleStatus = 'public'
-                GROUP BY c.CompilationID, c.CompilationTitle, u.UID, u.Name
-                ORDER BY MAX(v.UploadTime) DESC, c.CompilationID DESC
-                """).query((rs, row) -> new CollectionEntry(rs.getString("CompilationID"),
-                        rs.getString("CompilationTitle"), rs.getString("UID"), rs.getString("Name"),
-                        rs.getLong("Videos"), rs.getString("CoverVideo"))).list();
+        return findCollections("", "", CollectionSort.recommend, 0, Integer.MAX_VALUE);
+    }
+
+    private long countCollections(String keyword, String tag) {
+        var statement = jdbc.sql("""
+                SELECT COUNT(*) FROM compilationtable c JOIN usertable u ON u.UID = c.UID
+                WHERE
+                """ + publicCollectionMember("", "") + collectionSearchFilter(keyword, tag));
+        if (!keyword.isEmpty()) statement.param("q", keyword);
+        if (!tag.isEmpty()) statement.param("tag", tag);
+        return statement.query(Long.class).single();
+    }
+
+    private static String publicCollectionMember(String keyword, String tag) {
+        return """
+                EXISTS (SELECT 1 FROM videotable v
+                    WHERE v.CompilationID = c.CompilationID AND v.UID = c.UID
+                      AND v.VideoStatus = 'published' AND v.VisibleStatus = 'public'
+                """ + searchWhere(keyword, tag) + ")";
+    }
+
+    private static String collectionSearchFilter(String keyword, String tag) {
+        String keywordFilter = keyword.isEmpty() ? ""
+                : " AND (LOCATE(:q, c.CompilationTitle) > 0 OR " + publicCollectionMember(keyword, "") + ")";
+        return keywordFilter + (tag.isEmpty() ? "" : " AND " + publicCollectionMember("", tag));
+    }
+
+    List<CollectionEntry> findCollections(String keyword, String tag, CollectionSort sort, int offset, int limit) {
+        StringBuilder sql = new StringBuilder("""
+                WITH public_collections AS (
+                    SELECT CompilationID, UID, COUNT(*) AS Videos, MIN(VideoID) AS CoverVideo,
+                           MAX(UploadTime) AS Latest
+                    FROM videotable
+                    WHERE CompilationID IS NOT NULL AND VideoStatus = 'published' AND VisibleStatus = 'public'
+                    GROUP BY CompilationID, UID
+                )
+                SELECT c.CompilationID, c.CompilationTitle, u.UID, u.Name, p.Videos, p.CoverVideo,
+                       first_video.VideoTitle AS FirstTitle,
+                       (SELECT COUNT(*) FROM subscriptionsummarytable s
+                         WHERE s.CollectionID = c.CompilationID) AS Subscribers
+                FROM public_collections p
+                JOIN compilationtable c ON c.CompilationID = p.CompilationID AND c.UID = p.UID
+                JOIN usertable u ON u.UID = c.UID
+                JOIN videotable first_video ON first_video.VideoID = p.CoverVideo
+                WHERE 1=1
+                """).append(collectionSearchFilter(keyword, tag));
+        sql.append(" ORDER BY ");
+        if (sort == CollectionSort.subscribers) {
+            sql.append("Subscribers DESC, ");
+        } else if (!keyword.isEmpty()) {
+            sql.append("(c.CompilationTitle = :q) DESC, (LOCATE(:q, c.CompilationTitle) > 0) DESC, ");
+        }
+        sql.append("p.Latest DESC, c.CompilationID DESC LIMIT :limit OFFSET :offset");
+        var statement = jdbc.sql(sql.toString()).param("limit", limit).param("offset", offset);
+        if (!keyword.isEmpty()) statement.param("q", keyword);
+        if (!tag.isEmpty()) statement.param("tag", tag);
+        return statement.query((rs, row) -> new CollectionEntry(rs.getString("CompilationID"),
+                rs.getString("CompilationTitle"), rs.getString("UID"), rs.getString("Name"),
+                rs.getLong("Videos"), rs.getString("CoverVideo"), rs.getString("FirstTitle"),
+                rs.getLong("Subscribers"))).list();
     }
 
     List<CreatorEntry> recommendedCreators() {
@@ -192,7 +242,8 @@ class MysqlVideoCatalog {
                         rs.getString("SampleVideo"), rs.getString("SampleTitle"))).list();
     }
 
-    record CollectionEntry(String id, String title, String authorId, String author, long videos, String coverVideoId) {}
+    record CollectionEntry(String id, String title, String authorId, String author, long videos,
+                           String coverVideoId, String firstTitle, long subscribers) {}
     record CreatorEntry(String id, String name, String signature, String category, long videos,
                         String sampleVideoId, String sampleVideoTitle) {}
 
@@ -363,8 +414,9 @@ class MysqlVideoCatalog {
 
     enum Sort { recommend, latest, popular, danmaku, favorites, sequence, reverse }
     enum UserSort { defaultOrder, followersDesc, followersAsc, levelDesc, levelAsc }
+    enum CollectionSort { recommend, subscribers }
     record SearchUser(String id, String name, String signature, String level, long followers, long videos) {}
-    record SearchResult(long totalVideos, long totalUsers, List<SearchUser> users, boolean hasMore) {}
+    record SearchResult(long totalVideos, long totalUsers, long totalCollections, List<SearchUser> users, boolean hasMore) {}
     record Category(String id, String name) {}
     record Author(String id, String name, String signature, String headUrl, String birthday,
                   String level, long following, long followers, long videos) {}

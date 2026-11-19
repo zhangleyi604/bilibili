@@ -86,6 +86,21 @@ class VideoController {
         return catalog.collectionDirectory();
     }
 
+    @GetMapping("/collections/search")
+    CollectionPage searchCollections(@RequestParam(defaultValue = "") String q,
+                                     @RequestParam(defaultValue = "") String tag,
+                                     @RequestParam(defaultValue = "recommend") MysqlVideoCatalog.CollectionSort sort,
+                                     @RequestParam(defaultValue = "0") int page,
+                                     @RequestParam(defaultValue = "20") int size) {
+        if (q.length() > 80 || tag.length() > 80 || page < 0 || page > 10000 || size < 1 || size > 20) {
+            throw new ResponseStatusException(BAD_REQUEST, "分页或检索参数超出范围");
+        }
+        var results = catalog.findCollections(q.strip(), tag.strip(), sort, page * size, size + 1);
+        return new CollectionPage(results.stream().limit(size).toList(), results.size() > size);
+    }
+
+    record CollectionPage(List<MysqlVideoCatalog.CollectionEntry> items, boolean hasMore) {}
+
     @GetMapping("/creators/recommended")
     List<MysqlVideoCatalog.CreatorEntry> recommendedCreators() {
         return catalog.recommendedCreators();

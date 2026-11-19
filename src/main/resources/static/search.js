@@ -1,8 +1,10 @@
 function loadSearch() {
   const videoSorts = [['recommend', '综合排序'], ['popular', '最多播放'], ['latest', '最新发布'], ['danmaku', '最多弹幕'], ['favorites', '最多收藏']];
   const userSorts = [['defaultOrder', '默认排序'], ['followersDesc', '粉丝数由高到低'], ['followersAsc', '粉丝数由低到高'], ['levelDesc', 'Lv等级由高到低'], ['levelAsc', 'Lv等级由低到高']];
+  const collectionSorts = [['recommend', '综合排序'], ['subscribers', '最多订阅']];
   const feed = document.querySelector('.feed');
   const grid = el('video-grid');
+  const collectionResults = el('discovery-grid');
   const pagination = el('pagination');
   const form = document.querySelector('.navbar .search');
   form.classList.add('search-main');
@@ -15,7 +17,7 @@ function loadSearch() {
   const indicator = node('span', 'search-tab-indicator');
   indicator.setAttribute('aria-hidden', 'true');
   indicator.hidden = true;
-  const tabLinks = new Map([['all', '综合'], ['video', '视频'], ['user', '用户']].map(([key, label]) => {
+  const tabLinks = new Map([['all', '综合'], ['video', '视频'], ['user', '用户'], ['collection', '合集']].map(([key, label]) => {
     const a = link(path, label);
     a.dataset.searchLink = '';
     tabs.append(a);
@@ -117,7 +119,7 @@ function loadSearch() {
     if (hasMore) pagination.append(resultLink(query, { page: page + 1 }, '下一页', 'secondary'));
   };
   const updateCounts = (summary) => {
-    for (const [key, count] of [['video', summary.totalVideos], ['user', summary.totalUsers]]) {
+    for (const [key, count] of [['video', summary.totalVideos], ['user', summary.totalUsers], ['collection', summary.totalCollections]]) {
       const a = tabLinks.get(key);
       if (count != null && !a.querySelector('.search-count')) {
         a.append(node('span', 'search-count', count > 99 ? '99+' : count));
@@ -147,8 +149,10 @@ function loadSearch() {
     const request = ++latestRequest;
     const type = tabLinks.has(query.get('type')) ? query.get('type') : 'all';
     const showUsers = type === 'user';
-    const sortKey = showUsers ? 'userSort' : 'sort';
-    const options = showUsers ? userSorts : videoSorts;
+    const showCollections = type === 'collection';
+    const showVideos = !showUsers && !showCollections;
+    const [sortKey, options, sortLabel] = showUsers ? ['userSort', userSorts, '用户排序']
+      : showCollections ? ['collectionSort', collectionSorts, '合集排序'] : ['sort', videoSorts, '视频排序'];
     const order = options.some(([key]) => key === query.get(sortKey)) ? query.get(sortKey) : options[0][0];
     const page = Math.min(10000, Math.max(0, Number.parseInt(query.get('page'), 10) || 0));
     const categoryId = query.get('categoryId') || '';
@@ -159,7 +163,7 @@ function loadSearch() {
     currentType = type;
     alignIndicator();
 
-    sorts.setAttribute('aria-label', showUsers ? '用户排序' : '视频排序');
+    sorts.setAttribute('aria-label', sortLabel);
     if (sorts.dataset.sortKey !== sortKey) {
       sorts.replaceChildren(...options.map(([, label]) => link(path, label)));
       sorts.dataset.sortKey = sortKey;
@@ -170,17 +174,20 @@ function loadSearch() {
       a.dataset.searchLink = '';
       select(a, key === order);
     });
-    more.hidden = showUsers || !categoriesAvailable;
+    more.hidden = !showVideos || !categoriesAvailable;
     setFiltersVisible(!more.hidden && filtersOpen);
     updateFilters(query);
 
     users.classList.toggle('search-users-grid', showUsers);
     users.hidden = true;
     users.replaceChildren();
+    collectionResults.hidden = !showCollections;
+    collectionResults.replaceChildren();
     pagination.replaceChildren();
-    grid.hidden = showUsers;
-    grid.setAttribute('aria-busy', String(!showUsers));
-    grid.replaceChildren(...(showUsers ? [] : Array.from({ length: 15 }, () => {
+    grid.hidden = !showVideos;
+    grid.setAttribute('aria-busy', String(showVideos));
+    collectionResults.setAttribute('aria-busy', String(showCollections));
+    grid.replaceChildren(...(!showVideos ? [] : Array.from({ length: 15 }, () => {
       const placeholder = node('div', 'search-placeholder');
       placeholder.setAttribute('aria-hidden', 'true');
       placeholder.append(node('div', 'search-placeholder-cover'), node('div', 'search-placeholder-title'), node('div', 'search-placeholder-byline'));
@@ -196,6 +203,20 @@ function loadSearch() {
         users.replaceChildren(...result.users.map((user) => userCard(user, type)));
         users.hidden = !result.users.length;
         status(result.users.length ? '' : '没有找到相关用户，试试其他关键词');
+        paginate(query, page, result.hasMore);
+        return;
+      }
+
+      if (showCollections) {
+        const collectionQuery = new URLSearchParams({ q: keyword, tag, sort: order, page, size: 20 });
+        const result = await api('/collections/search?' + collectionQuery);
+        if (request !== latestRequest) return;
+        collectionResults.replaceChildren(...result.items.map((entry) => {
+          const row = collectionCard(entry);
+          highlight(row.querySelector('.discovery-title a'));
+          return row;
+        }));
+        status(result.items.length ? '' : '没有找到相关合集，试试其他关键词');
         paginate(query, page, result.hasMore);
         return;
       }
@@ -226,7 +247,10 @@ function loadSearch() {
       grid.replaceChildren();
       status('搜索加载失败，请稍后重试');
     } finally {
-      if (request === latestRequest) grid.removeAttribute('aria-busy');
+      if (request === latestRequest) {
+        grid.removeAttribute('aria-busy');
+        collectionResults.removeAttribute('aria-busy');
+      }
     }
   }
 
