@@ -106,6 +106,17 @@ class VideoController {
         return catalog.recommendedCreators();
     }
 
+    @GetMapping(value = "/creators/recommended", params = "page")
+    CreatorPage recommendedCreatorPage(@RequestParam int page, @RequestParam(defaultValue = "20") int size) {
+        if (size < 1 || size > 20 || page < 0 || page > Integer.MAX_VALUE / size) {
+            throw new ResponseStatusException(BAD_REQUEST, "分页参数超出范围");
+        }
+        var results = catalog.recommendedCreators(page * size, size + 1);
+        return new CreatorPage(results.stream().limit(size).toList(), results.size() > size);
+    }
+
+    record CreatorPage(List<MysqlVideoCatalog.CreatorEntry> items, boolean hasMore) {}
+
     @GetMapping("/authors/{id}/collections")
     List<MysqlVideoCatalog.Compilation> collections(@PathVariable String id) {
         author(id);

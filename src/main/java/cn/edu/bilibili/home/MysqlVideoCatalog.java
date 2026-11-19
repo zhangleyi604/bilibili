@@ -213,6 +213,10 @@ class MysqlVideoCatalog {
     }
 
     List<CreatorEntry> recommendedCreators() {
+        return recommendedCreators(0, Integer.MAX_VALUE);
+    }
+
+    List<CreatorEntry> recommendedCreators(int offset, int limit) {
         return jdbc.sql("""
                 WITH category_posts AS (
                     SELECT v.UID, v.CategoryID, COUNT(*) AS Posts, MAX(v.UploadTime) AS Latest,
@@ -239,7 +243,9 @@ class MysqlVideoCatalog {
                        AND v.VideoStatus = 'published' AND v.VisibleStatus = 'public'
                      ORDER BY v.UploadTime DESC, v.VideoID DESC LIMIT 1)
                 ORDER BY p.CategoryPosition, p.Latest DESC, p.UID
-                """).query((rs, row) -> new CreatorEntry(rs.getString("UID"), rs.getString("Name"),
+                LIMIT :limit OFFSET :offset
+                """).param("limit", limit).param("offset", offset)
+                .query((rs, row) -> new CreatorEntry(rs.getString("UID"), rs.getString("Name"),
                         rs.getString("Signature"), rs.getString("CategoryName"), rs.getLong("TotalPosts"),
                         rs.getLong("Followers"), rs.getString("SampleVideo"), rs.getString("SampleTitle"))).list();
     }

@@ -252,7 +252,7 @@ function popularCard({ video, score, position, reason }) {
   return item;
 }
 
-async function loadDiscovery() {
+function loadDiscovery() {
   const title = collectionsPage ? '视频合集' : '推荐UP主';
   el('feed-title').textContent = title;
   const form = el('discovery-search');
@@ -265,18 +265,41 @@ async function loadDiscovery() {
   el('video-grid').hidden = true;
   const grid = el('discovery-grid');
   grid.hidden = false;
-  status('正在加载…');
-  try {
-    const entries = await api(collectionsPage ? '/collections' : '/creators/recommended');
-    startListScroll(grid, entries, collectionsPage ? collectionCard : creatorCard,
-      collectionsPage ? '暂无公开视频合集' : '暂无推荐 UP 主');
-  } catch {
-    status('加载失败，请重试');
-    const retry = node('button', 'secondary home-more', '重试');
-    retry.type = 'button';
-    retry.onclick = () => { grid.replaceChildren(); loadDiscovery(); };
-    grid.replaceChildren(retry);
+  const more = el('feed-more');
+  const endpoint = collectionsPage ? '/collections/search' : '/creators/recommended';
+  const render = collectionsPage ? collectionCard : creatorCard;
+  const empty = collectionsPage ? '暂无公开视频合集' : '暂无推荐 UP 主';
+  let page = 0;
+  let loading = false;
+  let hasMore = true;
+  const observer = observeMore(loadNextPage);
+
+  async function loadNextPage() {
+    if (loading || !hasMore) return;
+    loading = true;
+    observer?.unobserve(more);
+    more.disabled = true;
+    status(page ? '正在加载更多…' : '正在加载…');
+    try {
+      const result = await api(endpoint + '?' + new URLSearchParams({ page, size: feedPageSize }));
+      grid.append(...result.items.map(render));
+      page++;
+      hasMore = result.hasMore;
+      more.hidden = !hasMore;
+      more.textContent = '加载更多';
+      status(hasMore ? '' : grid.childElementCount ? '已展示全部内容' : empty);
+      if (hasMore) observer?.observe(more);
+      else observer?.disconnect();
+    } catch {
+      more.hidden = false;
+      more.textContent = '重试';
+      status('加载失败，请重试');
+    } finally {
+      loading = false;
+      more.disabled = false;
+    }
   }
+  return loadNextPage();
 }
 
 function collectionCard(entry) {
