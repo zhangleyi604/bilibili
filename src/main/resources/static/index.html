@@ -5,8 +5,8 @@
   <base target="_self">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>dilidili · 第二组课程项目</title>
-  <link rel="stylesheet" href="/home.css?v=20">
-  <link rel="stylesheet" href="/watch.css?v=14">
+  <link rel="stylesheet" href="/home.css?v=27">
+  <link rel="stylesheet" href="/watch.css?v=18">
   <link rel="stylesheet" href="/watch-fullscreen.css?v=3">
   <link rel="stylesheet" href="/banner-leaves.css?v=1">
   <script src="/banner-leaves.js?v=3" defer></script>
@@ -15,12 +15,12 @@
   <script src="/space.js?v=5" defer></script>
   <link rel="stylesheet" href="/search.css?v=1">
   <script src="/search.js?v=1" defer></script>
-  <script src="/watch-preferences.js?v=5" defer></script>
+  <script src="/watch-preferences.js?v=7" defer></script>
   <script src="/watch-sidebar.js?v=2" defer></script>
   <script src="/viewer-presence.js?v=1" defer></script>
   <script src="/watch-comments.js?v=7" defer></script>
-  <script src="/watch.js?v=15" defer></script>
-  <script src="/home.js?v=23" defer></script>
+  <script src="/watch.js?v=18" defer></script>
+  <script src="/home.js?v=29" defer></script>
   <script src="/login.js?v=3" defer></script>
 </head>
 <body>
@@ -44,7 +44,7 @@
     <symbol id="i-flame" viewBox="0 0 24 24"><path d="M13 2c1 5-3 6-3 10-2 0-3-2-3-4-3 3-4 5-3 8a8 8 0 0 0 16-1c0-4-3-8-7-13z"/><path d="M12 13c3 2 4 6 0 7-3-1-2-5 0-7z"/></symbol>
     <symbol id="i-rank" viewBox="0 0 24 24"><path d="M3 20h18M5 20v-7h4v7m1 0V5h4v15m1 0V9h4v11"/></symbol>
     <symbol id="i-popular-flame" viewBox="0 0 24 24"><path fill="currentColor" stroke="none" d="M12 2c2.8 3.2 3.8 5.3 3.5 8.3 1.1-.5 1.8-1.5 2.1-2.8 2 2.3 3.2 4.7 3.2 7.3a8.8 8.8 0 0 1-7 8.4c1.5-1.2 2.4-2.5 2.4-4.1 0-2-1.4-3.6-3.6-5.1.1 2-1 3-2 4-.7-.5-1-1.1-1-1.9-1.4 1.4-2 2.7-1.8 4 .1 1.2.7 2.2 1.6 3A8.8 8.8 0 0 1 3.2 15c0-3.2 1.9-5.8 4.4-8.1-.2 2 .2 3.1 1.1 3.9C9 7 12 5.4 12 2Z"/></symbol>
-    <symbol id="i-popular-medal" viewBox="0 0 24 24"><path fill="currentColor" stroke="none" fill-rule="evenodd" d="M4 2h5l2 4.1A9.2 9.2 0 0 0 6.5 8L4 2Zm11 0h5l-2.5 6A9.2 9.2 0 0 0 13 6.1L15 2Zm-3 5a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm0 3.4 1.4 2.9 3.2.4-2.3 2.3.5 3.2-2.8-1.5-2.8 1.5.5-3.2-2.3-2.3 3.2-.4 1.4-2.9Z"/></symbol>
+    <symbol id="i-popular-medal" viewBox="0 0 24 24"><path fill="currentColor" stroke="none" d="M4 2h5.5L12 6l2.5-4H20l-3.3 5.8a9 9 0 0 0-9.4 0Z"/><path fill="currentColor" stroke="none" fill-rule="evenodd" d="M12 8a7 7 0 1 1 0 14 7 7 0 0 1 0-14Zm0 3-1.3 2.6-2.9.4 2.1 2.1-.5 2.9 2.6-1.4 2.6 1.4-.5-2.9 2.1-2.1-2.9-.4Z"/></symbol>
     <symbol id="i-popular-podium" viewBox="0 0 24 24"><path fill="currentColor" stroke="none" fill-rule="evenodd" d="M2 10h5v11H2a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1Zm7-5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v16H9V5Zm3 2-1.4 1v1.2l1-.6v3.1h1.2V7H12Zm5 5h5a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-5v-9Z"/></symbol>
     <symbol id="i-popular-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/></symbol>
     <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 10a8 8 0 0 0-13.66-3.66L4 9m0-5v5h5M4 14a8 8 0 0 0 13.66 3.66L20 15m-5 0h5v5"/></symbol>
@@ -177,7 +177,7 @@
         </div>
         <div id="danmaku-compose-home"></div><div id="danmaku-compose" class="danmaku-compose"><span id="online-viewers" aria-live="polite">—人正在看</span><button id="danmaku-toggle" aria-pressed="true" data-tooltip="开启 / 关闭弹幕"><svg class="watch-icon " aria-hidden="true"><use href="/assets/watch-icons.svg#danmaku"/></svg><svg class="watch-icon dm-badge" aria-hidden="true"><use href="/assets/watch-icons.svg#check"/></svg></button><div id="danmaku-control" class="control-popover"><button id="danmaku-settings" data-tooltip="弹幕设置"><svg class="watch-icon " aria-hidden="true"><use href="/assets/watch-icons.svg#danmaku"/></svg><svg class="watch-icon dm-badge" aria-hidden="true"><use href="/assets/watch-icons.svg#dm-gear"/></svg></button><div class="hover-panel danmaku-settings-panel"><div id="dm-settings-main"><strong>按类型过滤</strong><div class="dm-filter-types"><button id="dm-filter-scroll"><svg class="dm-type-icon" aria-hidden="true"><use href="/assets/watch-icons.svg#dm-scroll"/></svg><span>滚动</span></button><button id="dm-filter-fixed"><svg class="dm-type-icon" aria-hidden="true"><use href="/assets/watch-icons.svg#dm-fixed"/></svg><span>固定</span></button><button id="dm-filter-color"><svg class="dm-type-icon" aria-hidden="true"><use href="/assets/watch-icons.svg#dm-color"/></svg><span>彩色</span></button><button id="dm-filter-advanced"><svg class="dm-type-icon" aria-hidden="true"><use href="/assets/watch-icons.svg#dm-advanced"/></svg><span>高级</span></button></div><div class="dm-checks"><label><input id="dm-scale" type="checkbox"> 弹幕随屏幕缩放</label><label><input id="dm-subtitle-safe" type="checkbox"> 防挡字幕</label><label><input id="dm-smart" type="checkbox" checked> 智能防挡弹幕</label></div><div class="dm-filter-actions"><button id="dm-keywords-open">弹幕观看屏蔽词</button><button data-login="同步屏蔽列表" data-login-only>同步屏蔽列表</button></div>
 <label class="dm-slider">显示区域<input id="dm-area" type="range" min="25" max="100" step="25" value="100"><output id="dm-area-value">100%</output></label>
-<div class="dm-density"><span>弹幕密度</span><button id="dm-density-normal">正常</button><button id="dm-density-more">较多</button><button id="dm-density-overlap">重叠</button></div>
+<div class="dm-density"><span>弹幕密度</span><button id="dm-density-normal">正常</button><button id="dm-density-more">较多</button><button id="dm-density-overlap">最多</button></div>
 <label class="dm-slider">不透明度<input id="dm-opacity" type="range" min="10" max="100" value="80"><output id="dm-opacity-value">80%</output></label>
 <label class="dm-slider">弹幕字号<input id="dm-size" type="range" min="50" max="150" value="100"><output id="dm-size-value">100%</output></label>
 <label class="dm-slider">弹幕速度<input id="dm-speed" type="range" min="1" max="5" value="3"><output id="dm-speed-value">适中</output></label><button id="dm-advanced-open" class="panel-next">高级设置 <span>›</span></button></div>

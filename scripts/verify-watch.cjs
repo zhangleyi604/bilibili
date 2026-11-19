@@ -2,18 +2,24 @@
 const fs = require('node:fs');
 const vm = require('node:vm');
 class Element {
-  constructor() { this.style = {}; this.hidden = false; this.value = 0; this.children = []; this.dataset = {}; this.listeners = {}; this.attributes = {}; this.classes=new Set(); this.classList = { add:v=>this.classes.add(v), remove:v=>this.classes.delete(v), contains:v=>this.classes.has(v), toggle:(v,force)=>{const next=force===undefined?!this.classes.has(v):force;next?this.classes.add(v):this.classes.delete(v);return next;} }; }
+  style = { setProperty(key,value) { this[key] = value; } };
+  constructor() { this.hidden = false; this.value = 0; this.children = []; this.dataset = {}; this.listeners = {}; this.attributes = {}; this.classes=new Set(); this.classList = { add:v=>this.classes.add(v), remove:v=>this.classes.delete(v), contains:v=>this.classes.has(v), toggle:(v,force)=>{const next=force===undefined?!this.classes.has(v):force;next?this.classes.add(v):this.classes.delete(v);return next;} }; }
   after() {}
   contains() { return false; }
-  append(...items) { this.children.push(...items); }
+  append(...items) { this.children.push(...items); for (const item of items) if (item instanceof Element) item.parent = this; }
   replaceChildren(...items) { this.children = items; }
+  remove() { if (this.parent) this.parent.children = this.parent.children.filter(child => child !== this); }
+  clientWidth = 500;
+  clientHeight = 281;
+  offsetWidth = 100;
+  offsetHeight = 24;
   addEventListener(event, fn) { (this.listeners[event] ||= []).push(fn); }
   emit(event) { (this.listeners[event] || []).forEach(fn => fn()); }
   setAttribute(k,v) { this.attributes[k] = v; }
   querySelectorAll() { return []; }
   getBoundingClientRect() { return {left:100,top:100,width:500,height:281,bottom:125}; }
 }
-async function setup(storage = new Map(), collection = {title:null,items:[]}) {
+async function setup(storage = new Map(), collection = {title:null,items:[]}, accolades = {}) {
   const elements = new Map(); const el = id => { if (!elements.has(id)) elements.set(id,new Element()); return elements.get(id); };
   const p = el('player'); Object.assign(p,{ currentTime:0, duration:100, readyState:4, paused:true, ended:false, seeking:false, pause(){this.paused=true;this.emit('pause');}, async play(){this.paused=false;this.emit('play');} });
   el('login-dialog').open = false;
@@ -23,16 +29,53 @@ async function setup(storage = new Map(), collection = {title:null,items:[]}) {
     setInterval:fn=>(tick=fn,1),clearInterval(){},setTimeout(){return 1;},clearTimeout(){},
     window:{addEventListener(event,fn){(windowEvents[event] ||= []).push(fn);}}, navigator:{clipboard:{writeText:async text=>{copied=text;}}}, document:{ documentElement:{clientWidth:1200}, body:new Element(), title:'', activeElement:{tagName:'BODY'}, addEventListener(event,fn){(documentEvents[event] ||= []).push(fn);},querySelector:()=>new Element() },
     openLogin:()=>{prompts++;el('login-dialog').open=true;},location:{assign(){}},
-    node:(tag,cls,text)=>Object.assign(new Element(),{className:cls,textContent:text}),link:()=>new Element(),card:()=>new Element(),
+    node:(tag,cls,text)=>Object.assign(new Element(),{className:cls,textContent:text}),
+    link:(href,label,className)=>Object.assign(new Element(),{href,className,textContent:label}),
+    icon:name=>Object.assign(new Element(),{name}),card:()=>new Element(),
     api:async url=> url.endsWith('/collection')?collection:url.endsWith('/engagement')?{like:3,coin:4,favorite:5,share:6}:url.endsWith('/danmaku')?[
       {id:'1',userId:'7',content:'A',timestamp:2,sentAt:'2026-11-12T12:00:00'}, {id:'2',userId:'7',content:'B',timestamp:3,sentAt:'2026-11-12T12:01:00'}, {id:'3',userId:'8',content:'C',timestamp:4,sentAt:'2026-11-12T12:02:00'}
-    ]:url.startsWith('/authors/')?{followers:10}:url.startsWith('/videos?')?{items:[]}: {video:{id:'10001',title:'Test',authorId:'1',streamUrl:'/test.mp4',plays:1,danmaku:3},tags:[]}
+    ]:url.startsWith('/authors/')?{followers:10}:url.startsWith('/videos?')?{items:[]}: {video:{id:'10001',title:'Test',authorId:'1',streamUrl:'/test.mp4',plays:1,danmaku:3},tags:[],...accolades}
   };
   vm.createContext(context);vm.runInContext(fs.readFileSync('src/main/resources/static/watch-sidebar.js','utf8'),context);vm.runInContext(fs.readFileSync('src/main/resources/static/watch-preferences.js','utf8'),context);vm.runInContext(fs.readFileSync('src/main/resources/static/watch.js','utf8'),context);await context.loadWatchPage();
   return {el,p,storage,pageEvent:(name,event={})=>(windowEvents[name]||[]).forEach(fn=>fn(event)),copied:()=>copied,fullscreen:flag=>{context.document.fullscreenElement=flag?el('player-shell'):null;(documentEvents.fullscreenchange||[]).forEach(fn=>fn());}, advance(ms,move=true){now+=ms;if(move&&!p.paused)p.currentTime+=ms/1000;tick();},prompts:()=>prompts};
 }
 (async()=>{
+  const createTracks = vm.runInNewContext(fs.readFileSync('src/main/resources/static/watch.js', 'utf8') + '\nsetupDanmakuTracks;');
+  const overlay = Object.assign(new Element(), {clientHeight:84});
+  const tracks = createTracks(overlay);
+  const first = new Element(), second = new Element(), third = new Element();
+  let firstRight = 650;
+  first.getBoundingClientRect = () => ({right:firstRight});
+  second.getBoundingClientRect = () => ({right:650});
+  assert.equal(tracks.add(first, 'scroll', 8), true);
+  assert.equal(tracks.add(second, 'scroll', 8), true);
+  assert.equal(first.style.top, '0px');
+  assert.equal(second.style.top, '30px');
+  firstRight = 580;
+  third.offsetWidth = 300;
+  assert.equal(tracks.add(third, 'scroll', 8), true);
+  assert.equal(third.style.top, '0px');
+  assert.equal(first.style.animationDuration, '9.6s');
+  assert.equal(third.style.animationDuration, '12.8s');
+  for (const mode of ['top','bottom']) {
+    tracks.clear();
+    const fixed = [new Element(), new Element(), new Element(), new Element()];
+    assert.deepEqual(fixed.map(line => tracks.add(line, mode, 8)), [true,true,true,false]);
+    assert.deepEqual(fixed.slice(0,3).map(line => line.style.top), mode === 'top' ? ['0px','30px','60px'] : ['60px','30px','0px']);
+    fixed[0].emit('animationend');
+    assert.equal(tracks.add(fixed[3], mode, 8), true);
+    assert.equal(fixed[3].style.top, fixed[0].style.top);
+  }
+  console.log('PASS: rolling clearance, equal rolling speed, fixed lanes and release on animation end');
   const t=await setup();
+  assert.equal(t.el('video-meta').children.length,3);
+  const decorated = await setup(new Map(), undefined, {mustWatch:true,bestSiteRank:6});
+  const [mustWatchBadge, rankBadge] = decorated.el('video-meta').children;
+  assert.equal(mustWatchBadge.href, '/popular/must-watch');
+  assert.equal(mustWatchBadge.children[1], '入站必刷');
+  assert.equal(rankBadge.href, '/popular/rank');
+  assert.equal(rankBadge.children[1], '全站排行榜最高第6名');
+  assert.equal(rankBadge.target, '_self');
   t.p.pause();t.advance(5000);assert.equal(t.storage.has('bili-trial-v1:10001'),false,'pause does not count');
   await t.p.play();t.p.seeking=true;t.p.currentTime=80;t.advance(100);t.p.seeking=false;assert.equal(t.storage.has('bili-trial-v1:10001'),false,'seek does not count');
   for(let i=0;i<100;i++)t.advance(100);assert.equal(t.p.paused,false,'ten seconds does not exhaust the trial');
@@ -70,6 +113,7 @@ async function setup(storage = new Map(), collection = {title:null,items:[]}) {
   t.el('mode-pause').onclick();assert.equal(t.el('autoplay-next').checked,false);
   const hover = await setup();hover.p.currentTime=2;hover.p.emit('timeupdate');
   const line = hover.el('danmaku-overlay').children[0];assert.ok(line);line.emit('mouseenter');
+  assert.ok(Math.abs(parseFloat(line.style.animationDuration) - 7.68) < 0.0001);
   assert.equal(hover.el('danmaku-actions').hidden,false);assert.equal(line.style.animationPlayState,'paused');
   hover.el('dm-action-like').onclick();assert.equal(hover.prompts(),1);hover.el('login-dialog').open=false;
   hover.el('dm-action-report').onclick();assert.equal(hover.prompts(),2);

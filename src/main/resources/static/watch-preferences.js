@@ -1,4 +1,4 @@
-﻿function setupWatchPreferences(player, { read, save, notice }) {
+﻿function setupWatchPreferences(player, { read, save, notice, onDanmakuChange }) {
   const dmDefaults = { scroll:true, fixed:true, color:true, advanced:true, scale:false, subtitleSafe:false, smart:true, area:100, opacity:80, size:100, speed:3, density:'normal', keywords:[], syncRate:false, font:'heiti', bold:false, outline:'heavy' };
   const dm = { ...dmDefaults, ...read('bili-danmaku-settings', {}) };
   const playback = { next:true, ratio:'auto', audio:'off', hideBars:false, lights:false, nativePip:true, ...read('bili-more-playback', {}) };
@@ -14,9 +14,10 @@
     el('dm-keywords').value = dm.keywords.join('\n');
     const bottom = dm.subtitleSafe ? 26 : dm.smart ? 18 : 8;
     el('danmaku-overlay').setAttribute('style', 'bottom:' + bottom + '%;height:' + Math.min(dm.area * .85, 99 - bottom) + '%;top:1%;opacity:' + dm.opacity/100);
+    onDanmakuChange();
     save('bili-danmaku-settings', dm);
   }
-  for (const key of ['scroll','fixed','color','advanced']) el('dm-filter-' + key).onclick = () => { dm[key] = !dm[key]; applyDm(); if (key === 'scroll' && !dm.scroll) el('danmaku-overlay').replaceChildren(); };
+  for (const key of ['scroll','fixed','color','advanced']) el('dm-filter-' + key).onclick = () => { dm[key] = !dm[key]; applyDm(); };
   for (const [key,id] of [['scale','dm-scale'],['subtitleSafe','dm-subtitle-safe'],['smart','dm-smart']]) el(id).onchange = e => { dm[key] = e.target.checked; applyDm(); };
   for (const key of ['area','opacity','size','speed']) el('dm-' + key).oninput = e => { dm[key] = Number(e.target.value); applyDm(); };
   for (const value of ['normal','more','overlap']) el('dm-density-' + value).onclick = () => { dm.density = value; applyDm(); };
@@ -29,7 +30,7 @@
   el('dm-bold').onchange = e => { dm.bold = e.target.checked; applyDm(); };
   for (const outline of ['heavy','stroke','shadow']) el('dm-outline-' + outline).onclick = () => { dm.outline = outline; applyDm(); };
   el('dm-advanced-back').onclick = () => { el('dm-settings-main').hidden = false; el('dm-settings-advanced').hidden = true; };
-  el('dm-keywords-save').onclick = () => { dm.keywords = el('dm-keywords').value.split('\n').map(s => s.trim()).filter(Boolean); applyDm(); el('dm-keywords-back').onclick(); el('danmaku-overlay').replaceChildren(); };
+  el('dm-keywords-save').onclick = () => { dm.keywords = el('dm-keywords').value.split('\n').map(s => s.trim()).filter(Boolean); applyDm(); el('dm-keywords-back').onclick(); };
   el('dm-reset').onclick = () => { Object.assign(dm, dmDefaults, { keywords:[] }); applyDm(); };
   applyDm();
   function applyPlayback() {
@@ -59,8 +60,9 @@
   // Audio processing needs a user gesture; do not claim a saved mode is active before activation.
   playback.audio = 'off'; applyPlayback();
   return {
-    allows: () => dm.scroll,
-    decorate: (line, d) => { line.setAttribute('style', 'top:' + (Number(d.id) % 5) * 18 + '%;font-size:' + (dm.scale ? dm.size * .022 : dm.size * .22) + (dm.scale ? 'cqw' : 'px') + ';animation-duration:' + ((14 - dm.speed*2) / (dm.syncRate ? player.playbackRate || 1 : 1)) + 's'); },
+    allows: mode => mode === 'scroll' ? dm.scroll : dm.fixed,
+    decorate: line => { line.style.fontSize = (dm.scale ? dm.size * .022 : dm.size * .22) + (dm.scale ? 'cqw' : 'px'); },
+    travelSeconds: () => (14 - dm.speed * 2) * 0.8 / (dm.syncRate ? player.playbackRate || 1 : 1),
     limit: () => dm.density === 'normal' ? 3 : dm.density === 'more' ? 6 : 12,
     nativePip: () => playback.nativePip,
   };

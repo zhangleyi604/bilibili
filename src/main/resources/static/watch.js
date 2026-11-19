@@ -8,18 +8,22 @@
   let blocked = new Set(read('bili-blocked-users', []));
   let danmaku = [], enabled = true, lastTick = performance.now(), lastVideoTime = 0, nextVideo = null, noticeTimer;
   const shown = new Set();
+  const overlay = el('danmaku-overlay');
+  const tracks = setupDanmakuTracks(overlay);
   const clock = (value) => duration(Math.floor(Number.isFinite(value) ? value : 0));
   const notice = (message) => { el('control-notice').textContent = message; el('control-notice').hidden = false; clearTimeout(noticeTimer); noticeTimer = setTimeout(() => el('control-notice').hidden = true, 2500); };
   let activeDanmaku = null, activeLine = null, actionTimer;
   function hideDanmakuActions() {
     el('danmaku-actions').hidden = true;
     if (activeLine) activeLine.style.animationPlayState = '';
+    shell.classList.remove('inspecting-danmaku');
     activeDanmaku = null; activeLine = null;
   }
   function showDanmakuActions(d, line) {
     clearTimeout(actionTimer);
     if (activeLine && activeLine !== line) activeLine.style.animationPlayState = '';
     activeDanmaku = d; activeLine = line; line.style.animationPlayState = 'paused';
+    shell.classList.add('inspecting-danmaku');
     const rect = line.getBoundingClientRect(), frame = shell.getBoundingClientRect();
     const toolbar = el('danmaku-actions'); toolbar.hidden = false;
     const width = toolbar.offsetWidth || 150, height = toolbar.offsetHeight || 44;
@@ -28,6 +32,11 @@
     toolbar.setAttribute('style', 'left:' + left + 'px;top:' + top + 'px');
   }
   function delayHideActions() { clearTimeout(actionTimer); actionTimer = setTimeout(hideDanmakuActions, 220); }
+  function clearOnscreenDanmaku() {
+    hideDanmakuActions();
+    tracks.clear();
+  }
+  if (typeof ResizeObserver !== 'undefined') new ResizeObserver(clearOnscreenDanmaku).observe(overlay);
   el('danmaku-actions').addEventListener('mouseenter', () => clearTimeout(actionTimer));
   el('danmaku-actions').addEventListener('mouseleave', delayHideActions);
   el('danmaku-actions').addEventListener('focusin', () => clearTimeout(actionTimer));
@@ -87,16 +96,29 @@
       el('seek').value = player.currentTime / player.duration * 100;
       el('seek').setAttribute('style', '--seek-progress:' + el('seek').value + '%');
     }
-    if (enabled && !player.seeking) danmaku.filter(d => d.timestamp <= player.currentTime && d.timestamp > player.currentTime - 0.6 && !shown.has(d.id) && watchSidebar.allowed(d) && watchPreferences.allows(d)).slice(0, watchPreferences.limit()).forEach(d => {
-      shown.add(d.id); const line = node('span', 'flying-danmaku', d.content); line.dataset.userId = d.userId; watchPreferences.decorate(line, d);
-      line.tabIndex = 0; line.setAttribute('aria-label', d.content + '，查看弹幕操作');
-      line.addEventListener('mouseenter', () => showDanmakuActions(d, line)); line.addEventListener('focus', () => showDanmakuActions(d, line));
-      line.addEventListener('mouseleave', delayHideActions); line.addEventListener('blur', delayHideActions);
-      el('danmaku-overlay').append(line); line.addEventListener('animationend', () => { if (activeLine === line) hideDanmakuActions(); line.remove(); });
-    });
+    if (!enabled || player.seeking || activeLine) return;
+    let placed = 0;
+    for (const d of danmaku) {
+      if (placed >= watchPreferences.limit()) break;
+      if (d.timestamp > player.currentTime || d.timestamp <= player.currentTime - 0.6 || shown.has(d.id)) continue;
+      const mode = d.mode === 'top' || d.mode === 'bottom' ? d.mode : 'scroll';
+      if (!watchSidebar.allowed(d) || !watchPreferences.allows(mode)) continue;
+      if (displayDanmaku(d, mode)) { shown.add(d.id); placed++; }
+    }
   });
+  function displayDanmaku(d, mode) {
+    const line = node('span', 'flying-danmaku', d.content);
+    line.dataset.userId = d.userId;
+    watchPreferences.decorate(line);
+    if (!tracks.add(line, mode, watchPreferences.travelSeconds())) return false;
+    line.tabIndex = 0; line.setAttribute('aria-label', d.content + '，查看弹幕操作');
+    line.addEventListener('mouseenter', () => showDanmakuActions(d, line)); line.addEventListener('focus', () => showDanmakuActions(d, line));
+    line.addEventListener('mouseleave', delayHideActions); line.addEventListener('blur', delayHideActions);
+    line.addEventListener('animationend', () => { if (activeLine === line) hideDanmakuActions(); });
+    return true;
+  }
   player.addEventListener('loadedmetadata', () => { el('play-time').textContent = clock(player.currentTime) + ' / ' + clock(player.duration); });
-  player.addEventListener('seeking', () => { hideDanmakuActions(); shown.clear(); el('danmaku-overlay').replaceChildren(); lastTick = performance.now(); });
+  player.addEventListener('seeking', () => { clearOnscreenDanmaku(); shown.clear(); lastTick = performance.now(); });
   player.addEventListener('seeked', () => { lastVideoTime = player.currentTime; lastTick = performance.now(); });
   el('seek').oninput = () => { if (Number.isFinite(player.duration)) { player.currentTime = player.duration * el('seek').value / 100; el('seek').setAttribute('style', '--seek-progress:' + el('seek').value + '%'); } };
   player.addEventListener('ratechange', () => { if (player.playbackRate !== 1) player.playbackRate = 1; });
@@ -156,11 +178,11 @@
   el('web-fullscreen').onclick = () => { shell.classList.toggle('web-full'); syncFullscreenLayout(); };
   el('fullscreen-toggle').onclick = async () => { try { if (document.fullscreenElement) await document.exitFullscreen(); else await shell.requestFullscreen(); } catch { notice('当前浏览器无法开启全屏'); } };
   document.addEventListener('keydown', e => { if (e.key === 'Escape') { shell.classList.remove('web-full'); syncFullscreenLayout(); for (const id of ['speed-control','subtitle-control','settings-control']) el(id).dataset.open = 'false'; } if (preferences.keyboard && e.key.toLowerCase() === 'f' && !el('login-dialog').open && !['INPUT','SELECT','TEXTAREA'].includes(document.activeElement.tagName)) { e.preventDefault(); el('fullscreen-toggle').onclick(); } if (preferences.keyboard && e.code === 'Space' && !el('login-dialog').open && !['INPUT','BUTTON','SELECT','TEXTAREA'].includes(document.activeElement.tagName)) { e.preventDefault(); play(); } });
-  el('danmaku-toggle').onclick = () => { enabled = !enabled; el('danmaku-toggle').setAttribute('aria-pressed', String(enabled)); el('danmaku-toggle').dataset.enabled = String(enabled); el('danmaku-overlay').hidden = !enabled; if (!enabled) hideDanmakuActions(); };
-  const watchPreferences = setupWatchPreferences(player, { read, save, notice });
+  el('danmaku-toggle').onclick = () => { enabled = !enabled; el('danmaku-toggle').setAttribute('aria-pressed', String(enabled)); el('danmaku-toggle').dataset.enabled = String(enabled); overlay.hidden = !enabled; if (!enabled) clearOnscreenDanmaku(); };
+  const watchPreferences = setupWatchPreferences(player, { read, save, notice, onDanmakuChange: clearOnscreenDanmaku });
   const watchSidebar = setupWatchSidebar({ read, save, notice, getUsers:()=>blocked,
     setUsers: users => { blocked = users; save('bili-blocked-users', [...blocked]); },
-    onChange: () => { hideDanmakuActions(); el('danmaku-overlay').replaceChildren(); renderDanmaku(); }
+    onChange: () => { clearOnscreenDanmaku(); renderDanmaku(); }
   });
   function renderDanmaku() {
     el('danmaku-list').replaceChildren(...danmaku.map(d => {
@@ -177,7 +199,7 @@
     if (!danmaku.length) el('danmaku-list').append(node('p', 'status', '暂无弹幕'));
   }
   try {
-    const { video, description, tags } = await api('/videos/' + encodeURIComponent(id));
+    const { video, description, tags, mustWatch, bestSiteRank } = await api('/videos/' + encodeURIComponent(id));
     startViewerPresence(id);
     document.title = video.title + ' - dilidili'; el('video-title').textContent = video.title;
     const metaStat = (name, count) => {
@@ -186,7 +208,16 @@
       stat.append(node('span', '', shortCount(count)));
       return stat;
     };
-    el('video-meta').replaceChildren(metaStat('play', video.plays), metaStat('danmaku', video.danmaku), node('time', '', video.publishedAt?.replace('T', ' ') || ''));
+    const accolades = [];
+    const accolade = (href, label, symbol, variant) => {
+      const badge = link(href, null, 'video-accolade video-accolade-' + variant);
+      badge.target = '_self';
+      badge.append(icon(symbol), label);
+      return badge;
+    };
+    if (mustWatch) accolades.push(accolade('/popular/must-watch', '入站必刷', 'popular-medal', 'must-watch'));
+    if (bestSiteRank) accolades.push(accolade('/popular/rank', '全站排行榜最高第' + bestSiteRank + '名', 'popular-podium', 'rank'));
+    el('video-meta').replaceChildren(...accolades, metaStat('play', video.plays), metaStat('danmaku', video.danmaku), node('time', '', video.publishedAt?.replace('T', ' ') || ''));
     el('video-description').textContent = description || '-';
     el('video-tags').replaceChildren(link('/channel/' + video.categoryId, video.category), ...tags.map(t => link('/search?tag=' + encodeURIComponent(t), t)));
     el('fullscreen-title').textContent = video.title; el('watch-author-name').textContent = video.author; el('watch-author-link').href = '/space/' + video.authorId;
@@ -257,4 +288,45 @@ function setupFullscreenIdle(shell) {
   for (const event of ['pointermove', 'pointerdown', 'keydown', 'focusin', 'focusout']) shell.addEventListener(event, wake);
   window.addEventListener('pagehide', () => clearTimeout(timer), { once:true });
   return wake;
+}
+
+function setupDanmakuTracks(overlay) {
+  const active = new Map();
+  const gap = 6;
+
+  function clear() {
+    active.clear();
+    overlay.replaceChildren();
+  }
+
+  function add(line, mode, travelSeconds) {
+    const width = overlay.clientWidth, height = overlay.clientHeight;
+    if (!width || !height) return false;
+    const entrance = overlay.getBoundingClientRect().left + width;
+    line.dataset.mode = mode;
+    overlay.append(line);
+    const lineWidth = line.offsetWidth, lineHeight = line.offsetHeight;
+    const step = lineHeight + gap;
+    const scrolling = mode === 'scroll';
+    const occupied = [...active];
+    for (let offset = 0; offset + lineHeight <= height; offset += step) {
+      const top = mode === 'bottom' ? height - lineHeight - offset : offset;
+      const overlaps = occupied.some(([other, track]) => {
+        if (top >= track.bottom + gap || top + lineHeight + gap <= track.top) return false;
+        // Scrolling lines share a speed, so a fully entered line cannot be caught from behind.
+        return !scrolling || !track.scrolling || other.getBoundingClientRect().right + gap > entrance;
+      });
+      if (overlaps) continue;
+      line.style.top = top + 'px';
+      line.style.setProperty('--danmaku-travel', width + 'px');
+      line.style.animationDuration = (mode === 'scroll' ? travelSeconds * (1 + lineWidth / width) : 4) + 's';
+      active.set(line, { scrolling, top, bottom: top + lineHeight });
+      line.addEventListener('animationend', () => { active.delete(line); line.remove(); });
+      return true;
+    }
+    line.remove();
+    return false;
+  }
+
+  return { add, clear };
 }
