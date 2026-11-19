@@ -24,6 +24,7 @@ let items = [];
 let slides = [];
 let slideIndex = 0;
 const feedPageSize = 20;
+const categorySymbols = { '娱乐': '🪄', '音乐': '🎵', '游戏': '🎮', '知识': '📚', '美食': '🍜', '动画': '🎨', '旅行': '🧳', '科技': '💻', '生活': '☀', '运动': '🏀', '影视': '🎬', '人工智能': '🤖', '时尚美妆': '💄', 'Vlog': '📷', '动物': '🐾' };
 const feedVideoIds = new Set();
 let feedNextPage = 0;
 let feedHasMore = true;
@@ -449,6 +450,7 @@ async function init() {
   if (category) {
     document.querySelector('.carousel').setAttribute('aria-label', '分区精选视频');
   }
+  if (home || category) setupChannelNavigation();
   if (!home && !category && !latestPage) {
     const tabs = node('nav', 'sort-tabs');
     tabs.setAttribute('aria-label', '视频排序');
@@ -465,7 +467,147 @@ async function init() {
   return loadCategories();
 }
 
+function setupChannelNavigation() {
+  const bar = document.querySelector('.navbar');
+  const banner = document.querySelector('.banner');
+  const homeLink = bar.querySelector('.home-link');
+  const start = node('div', 'channel-nav-start');
+  const logo = link('/', null, 'channel-nav-logo');
+  const image = node('img');
+  image.src = '/assets/dilidili.svg?v=2';
+  image.alt = 'dilidili 首页';
+  logo.append(image);
+
+  const trigger = node('div', 'channel-nav-trigger');
+  const toggle = node('button', 'channel-nav-toggle');
+  toggle.type = 'button';
+  toggle.setAttribute('aria-label', '选择分区');
+  toggle.setAttribute('aria-controls', 'channel-nav-list');
+  toggle.setAttribute('aria-expanded', 'false');
+  toggle.append(icon('right'));
+  const panel = node('div', 'channel-nav-panel');
+  panel.inert = true;
+  const list = node('ul', 'channel-nav-list');
+  list.id = 'channel-nav-list';
+  list.append(node('li', 'channel-nav-message', '正在加载分区…'));
+  panel.append(list);
+
+  homeLink.before(start);
+  trigger.append(homeLink, toggle);
+  start.append(logo, trigger, panel);
+  const setOpen = (open) => {
+    if (open && !bar.classList.contains('channel-nav-stuck')) return;
+    panel.inert = !open;
+    toggle.setAttribute('aria-expanded', String(open));
+    start.classList.toggle('channel-nav-open', open);
+  };
+  trigger.addEventListener('pointerenter', (event) => {
+    if (event.pointerType === 'mouse') setOpen(true);
+  });
+  start.addEventListener('pointerleave', () => {
+    if (!panel.contains(document.activeElement)) setOpen(false);
+  });
+  start.addEventListener('focusout', (event) => {
+    if (!start.contains(event.relatedTarget)) setOpen(false);
+  });
+  toggle.onclick = () => setOpen(panel.inert);
+  start.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || panel.inert) return;
+    toggle.focus();
+    setOpen(false);
+  });
+  document.addEventListener('pointerdown', (event) => {
+    if (!start.contains(event.target)) setOpen(false);
+  });
+
+  const pin = (stuck) => {
+    if (!stuck) setOpen(false);
+    bar.classList.toggle('channel-nav-stuck', stuck);
+  };
+  pin(banner.getBoundingClientRect().bottom <= 0);
+  const observer = new IntersectionObserver(([entry]) => pin(entry.boundingClientRect.bottom <= 0));
+  observer.observe(banner);
+}
+
+function setupHomeChannelBar(categories) {
+  const channels = document.querySelector('.channels');
+  const nav = node('nav', 'home-channel-bar');
+  nav.setAttribute('aria-label', '首页分区导航');
+  nav.hidden = true;
+
+  const row = node('div', 'layout home-channel-row');
+  const shortcuts = node('div', 'home-channel-shortcuts');
+  const popular = channels.querySelector('.channel-icons a').cloneNode(true);
+  shortcuts.append(popular);
+
+  const viewport = node('div', 'home-channel-viewport');
+  viewport.id = 'home-channel-options';
+  const options = node('div', 'home-channel-options');
+  const links = categories.map(({ id, name }) => link('/channel/' + encodeURIComponent(id), name));
+  links.push(...Array.from(channels.querySelectorAll('.channel-links a'), (a) => link(a.href, a.textContent)));
+  options.append(...links);
+  viewport.append(options);
+
+  const toggle = node('button', 'home-channel-toggle');
+  toggle.type = 'button';
+  toggle.setAttribute('aria-label', '展开全部分区');
+  toggle.setAttribute('aria-controls', viewport.id);
+  toggle.setAttribute('aria-expanded', 'false');
+  toggle.append(icon('right'));
+  row.append(shortcuts, toggle, viewport);
+  nav.append(row);
+  document.querySelector('.navbar').after(nav);
+
+  let expanded = false;
+  const measure = () => {
+    if (nav.hidden) return;
+    const firstRow = links[0].offsetTop;
+    viewport.style.setProperty('--home-channel-full-height', options.offsetHeight + 'px');
+    for (const a of links) a.inert = !expanded && a.offsetTop !== firstRow;
+    toggle.style.visibility = links.every((a) => a.offsetTop === firstRow) ? 'hidden' : '';
+  };
+  const setExpanded = (open) => {
+    if (!open && expanded) options.scrollTop = 0;
+    expanded = open;
+    nav.classList.toggle('home-channel-expanded', open);
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.setAttribute('aria-label', open ? '收起全部分区' : '展开全部分区');
+    measure();
+  };
+  toggle.addEventListener('pointerenter', (event) => {
+    if (event.pointerType === 'mouse') setExpanded(true);
+  });
+  toggle.onclick = () => setExpanded(!expanded);
+  nav.addEventListener('pointerleave', () => {
+    if (!viewport.contains(document.activeElement)) setExpanded(false);
+  });
+  nav.addEventListener('focusout', (event) => {
+    if (!nav.contains(event.relatedTarget)) setExpanded(false);
+  });
+  nav.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || !expanded) return;
+    toggle.focus();
+    setExpanded(false);
+  });
+  document.addEventListener('pointerdown', (event) => {
+    if (expanded && !nav.contains(event.target)) setExpanded(false);
+  });
+
+  const pin = (stuck) => {
+    if (!stuck) setExpanded(false);
+    nav.hidden = !stuck;
+    measure();
+  };
+  pin(channels.getBoundingClientRect().bottom <= 64);
+  const intersection = new IntersectionObserver(([entry]) => {
+    pin(entry.boundingClientRect.bottom <= entry.rootBounds.top);
+  }, { rootMargin: '-64px 0px 0px' });
+  intersection.observe(channels);
+  new ResizeObserver(measure).observe(options);
+}
+
 async function loadCategories() {
+  const menu = el('channel-nav-list');
   try {
     const categories = await api('/categories');
     el('categories').replaceChildren(link('/', '首页'), ...categories.map((item) => {
@@ -473,16 +615,31 @@ async function loadCategories() {
       if (item.id === category) {
         el('feed-title').textContent = item.name;
         if (category) {
-          const symbols = { '娱乐': '🪄', '音乐': '🎵', '游戏': '🎮', '知识': '📚', '美食': '🍜', '动画': '🎨', '旅行': '🧳', '科技': '💻', '生活': '☀', '运动': '🏀', '影视': '🎬', '人工智能': '🤖', '时尚美妆': '💄', 'Vlog': '📷', '动物': '🐾' };
-          el('feed-title').prepend(node('span', 'category-symbol', symbols[item.name] || '✦'));
+          el('feed-title').prepend(node('span', 'category-symbol', categorySymbols[item.name] || '✦'));
         }
         document.title = item.name + ' - dilidili';
         a.setAttribute('aria-current', 'page');
       }
       return a;
     }));
+    if (home && categories.length) setupHomeChannelBar(categories);
+    if (menu && categories.length) {
+      menu.replaceChildren(...categories.map(({ id, name }) => {
+        const row = node('li');
+        const item = link('/channel/' + encodeURIComponent(id));
+        const symbol = node('span', 'channel-nav-icon', categorySymbols[name] || '✦');
+        symbol.setAttribute('aria-hidden', 'true');
+        item.append(symbol, name);
+        if (id === category) item.setAttribute('aria-current', 'page');
+        row.append(item);
+        return row;
+      }));
+    } else if (menu) {
+      menu.replaceChildren(node('li', 'channel-nav-message', '暂无可选分区'));
+    }
   } catch {
     el('categories').textContent = '分区暂时不可用';
+    if (menu) menu.replaceChildren(node('li', 'channel-nav-message', '分区暂时不可用'));
   }
 }
 
