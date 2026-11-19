@@ -544,7 +544,6 @@ function setupHomeChannelBar(categories) {
   viewport.id = 'home-channel-options';
   const options = node('div', 'home-channel-options');
   const links = categories.map(({ id, name }) => link('/channel/' + encodeURIComponent(id), name));
-  links.push(...Array.from(channels.querySelectorAll('.channel-links a'), (a) => link(a.href, a.textContent)));
   options.append(...links);
   viewport.append(options);
 
