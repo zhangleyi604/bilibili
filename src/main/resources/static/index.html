@@ -5,7 +5,7 @@
   <base target="_self">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>dilidili · 第二组课程项目</title>
-  <link rel="stylesheet" href="/home.css?v=28">
+  <link rel="stylesheet" href="/home.css?v=35">
   <link rel="stylesheet" href="/watch.css?v=23">
   <link rel="stylesheet" href="/watch-fullscreen.css?v=3">
   <link rel="stylesheet" href="/banner-leaves.css?v=1">
@@ -13,14 +13,14 @@
   <link rel="stylesheet" href="/watch-comments.css?v=9">
   <link rel="stylesheet" href="/space.css?v=10">
   <script src="/space.js?v=5" defer></script>
-  <link rel="stylesheet" href="/search.css?v=5">
-  <script src="/search.js?v=3" defer></script>
+  <link rel="stylesheet" href="/search.css?v=6">
+  <script src="/search.js?v=5" defer></script>
   <script src="/watch-preferences.js?v=7" defer></script>
   <script src="/watch-sidebar.js?v=2" defer></script>
   <script src="/viewer-presence.js?v=1" defer></script>
   <script src="/watch-comments.js?v=7" defer></script>
   <script src="/watch.js?v=23" defer></script>
-  <script src="/home.js?v=30" defer></script>
+  <script src="/home.js?v=36" defer></script>
   <script src="/login.js?v=3" defer></script>
 </head>
 <body>
@@ -56,7 +56,7 @@
     <nav class="navbar" aria-label="主导航">
       <a class="home-link" href="/" target="_self" aria-label="返回首页"><svg><use href="#i-tv"/></svg>首页</a>
       <form class="search" role="search" action="/search" method="get">
-        <input name="keyword" id="keyword" aria-label="搜索视频、UP主或标签" placeholder="搜索视频、UP主或标签" maxlength="80">
+        <input name="keyword" id="keyword" aria-label="搜索视频、合集、UP主或标签" placeholder="搜索视频、合集、UP主或标签" maxlength="80">
         <button aria-label="搜索"><svg><use href="#i-search"/></svg></button>
       </form>
       <div class="nav-right">
@@ -127,7 +127,14 @@
       </div>
     </section>
     <section aria-label="视频浏览" class="feed">
-      <div id="feed-toolbar" class="feed-toolbar" hidden><div><h1 id="feed-title"></h1><p id="feed-note"></p></div></div>
+      <div id="feed-toolbar" class="feed-toolbar" hidden>
+        <div><h1 id="feed-title"></h1><p id="feed-note"></p></div>
+        <form id="discovery-search" class="discovery-search" role="search" action="/search" method="get" hidden>
+          <input type="hidden" name="type">
+          <input name="keyword" type="search" maxlength="80" required>
+          <button aria-label="搜索"><svg><use href="#i-search"/></svg></button>
+        </form>
+      </div>
       <div id="featured" class="featured">
         <section class="carousel" aria-label="首页轮播">
           <a href="/popular" id="slide-action" class="slide" aria-label="打开精选视频"><img id="slide-image" alt=""><span id="slide-title"></span></a>

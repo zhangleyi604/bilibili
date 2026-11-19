@@ -8,6 +8,7 @@ const rank = path === '/popular/rank';
 const popularPage = path === '/popular' || path === '/popular/must-watch' || rank;
 const collectionsPage = path === '/collections';
 const creatorsPage = path === '/creators';
+const discoveryPage = collectionsPage || creatorsPage;
 const latestPage = path === '/latest';
 const watching = path.startsWith('/video/');
 const service = path.startsWith('/service/');
@@ -24,7 +25,11 @@ let items = [];
 let slides = [];
 let slideIndex = 0;
 const feedPageSize = 20;
-const categorySymbols = { '娱乐': '🪄', '音乐': '🎵', '游戏': '🎮', '知识': '📚', '美食': '🍜', '动画': '🎨', '旅行': '🧳', '科技': '💻', '生活': '☀', '运动': '🏀', '影视': '🎬', '人工智能': '🤖', '时尚美妆': '💄', 'Vlog': '📷', '动物': '🐾' };
+const categoryIcons = {
+  '知识': 'knowledge', '科技': 'tech', '生活': 'life_joy', '美食': 'food', '游戏': 'game',
+  '音乐': 'music', '运动': 'sports', '旅行': 'travel', '动画': 'douga', '影视': 'cinephile',
+  '娱乐': 'entertainment', '人工智能': 'ai', '时尚美妆': 'fashion', 'Vlog': 'vlog', '动物': 'animal'
+};
 const feedVideoIds = new Set();
 let feedNextPage = 0;
 let feedHasMore = true;
@@ -38,6 +43,15 @@ function icon(name) {
   use.setAttribute('href', '#i-' + name);
   svg.setAttribute('aria-hidden', 'true');
   svg.append(use);
+  return svg;
+}
+
+function categoryIcon(name) {
+  const svg = icon('grid');
+  if (Object.hasOwn(categoryIcons, name)) {
+    svg.firstElementChild.setAttribute('href', '/assets/channel-icons.svg#' + categoryIcons[name]);
+  }
+  svg.classList.add('category-icon');
   return svg;
 }
 
@@ -238,72 +252,118 @@ function popularCard({ video, score, position, reason }) {
   return item;
 }
 
-async function loadDiscovery() {
+function loadDiscovery() {
   const title = collectionsPage ? '视频合集' : '推荐UP主';
   el('feed-title').textContent = title;
-  el('feed-note').textContent = collectionsPage ? '浏览各位 UP 主的系列作品' : '发现不同分区的创作者和他们的作品';
+  const form = el('discovery-search');
+  const searchLabel = collectionsPage ? '搜索视频合集' : '搜索UP主';
+  form.elements.type.value = collectionsPage ? 'collection' : 'user';
+  form.elements.keyword.placeholder = searchLabel;
+  form.elements.keyword.setAttribute('aria-label', searchLabel);
+  form.hidden = false;
   document.title = title + ' - dilidili';
   el('video-grid').hidden = true;
   const grid = el('discovery-grid');
-  grid.classList.toggle('creator-list', creatorsPage);
   grid.hidden = false;
-  status('正在加载…');
-  try {
-    const entries = await api(collectionsPage ? '/collections' : '/creators/recommended');
-    startListScroll(grid, entries, collectionsPage ? collectionCard : creatorCard,
-      collectionsPage ? '暂无公开视频合集' : '暂无推荐 UP 主');
-  } catch {
-    status('加载失败，请重试');
-    const retry = node('button', 'secondary home-more', '重试');
-    retry.type = 'button';
-    retry.onclick = () => { grid.replaceChildren(); loadDiscovery(); };
-    grid.replaceChildren(retry);
+  const more = el('feed-more');
+  const endpoint = collectionsPage ? '/collections/search' : '/creators/recommended';
+  const render = collectionsPage ? collectionCard : creatorCard;
+  const empty = collectionsPage ? '暂无公开视频合集' : '暂无推荐 UP 主';
+  let page = 0;
+  let loading = false;
+  let hasMore = true;
+  const observer = observeMore(loadNextPage);
+
+  async function loadNextPage() {
+    if (loading || !hasMore) return;
+    loading = true;
+    observer?.unobserve(more);
+    more.disabled = true;
+    status(page ? '正在加载更多…' : '正在加载…');
+    try {
+      const result = await api(endpoint + '?' + new URLSearchParams({ page, size: feedPageSize }));
+      grid.append(...result.items.map(render));
+      page++;
+      hasMore = result.hasMore;
+      more.hidden = !hasMore;
+      more.textContent = '加载更多';
+      status(hasMore ? '' : grid.childElementCount ? '已展示全部内容' : empty);
+      if (hasMore) observer?.observe(more);
+      else observer?.disconnect();
+    } catch {
+      more.hidden = false;
+      more.textContent = '重试';
+      status('加载失败，请重试');
+    } finally {
+      loading = false;
+      more.disabled = false;
+    }
   }
+  return loadNextPage();
 }
 
 function collectionCard(entry) {
-  const a = link('/space/' + encodeURIComponent(entry.authorId) + '?tab=collection&collection='
-    + encodeURIComponent(entry.id), null, 'card-video');
-  const cover = node('div', 'card-cover');
-  const img = node('img');
-  img.alt = '';
-  img.loading = 'lazy';
-  cover.append(img);
-  attachCover(img, '/api/videos/' + encodeURIComponent(entry.coverVideoId) + '/cover', '视频合集');
-  a.append(cover, node('h2', 'card-title', entry.title));
-  const card = node('article', 'discovery-card');
-  card.append(a, node('p', 'discovery-meta', entry.author + ' · ' + entry.videos + ' 个视频'));
-  return card;
-}
+  const id = encodeURIComponent(entry.authorId);
+  const authorUrl = '/space/' + id;
+  const href = authorUrl + '?tab=collection&collection=' + encodeURIComponent(entry.id);
+  const row = node('article', 'discovery-row');
+  const text = node('div', 'discovery-copy');
+  const heading = node('h2', 'discovery-title');
+  heading.append(link(href, entry.title));
+  text.append(heading);
+  if (entry.firstTitle) text.append(node('p', 'discovery-summary', '首集 · ' + entry.firstTitle));
 
-function creatorCard(entry) {
-  const id = encodeURIComponent(entry.id);
-  const videoId = encodeURIComponent(entry.sampleVideoId);
-  const videoUrl = '/video/' + videoId;
-  const card = node('article', 'creator-card');
-  const cover = link(videoUrl, null, 'card-cover creator-cover');
-  cover.setAttribute('aria-label', '播放代表作：' + entry.sampleVideoTitle);
+  const profile = link(authorUrl, null, 'discovery-profile');
+  profile.setAttribute('aria-label', entry.author + ' 的个人主页');
+  const avatar = node('img', 'discovery-avatar');
+  avatar.alt = '';
+  avatar.loading = 'lazy';
+  avatar.onerror = () => { avatar.hidden = true; };
+  avatar.src = '/api/authors/' + id + '/avatar';
+  profile.append(avatar, node('span', '', entry.author));
+  const byline = node('div', 'discovery-meta');
+  byline.append(profile, node('span', '', shortCount(entry.videos) + ' 个视频'),
+    node('span', '', shortCount(entry.subscribers) + ' 人订阅'));
+  text.append(byline);
+
+  const cover = link(href, null, 'card-cover discovery-cover');
+  cover.setAttribute('aria-label', entry.title);
   const image = node('img');
   image.alt = '';
   image.loading = 'lazy';
   cover.append(image);
-  attachCover(image, '/api/videos/' + videoId + '/cover', entry.category);
-  const author = link('/space/' + id, null, 'creator-heading');
-  const avatar = node('img', 'creator-avatar');
-  avatar.alt = '';
-  avatar.loading = 'lazy';
-  avatar.src = '/api/authors/' + id + '/avatar';
-  const info = node('div');
-  author.append(avatar, node('h2', 'creator-name', entry.name));
-  const signature = node('p', 'creator-signature', entry.signature?.trim() || '暂无简介');
-  signature.title = signature.textContent;
-  const work = link(videoUrl, entry.sampleVideoTitle, 'creator-work');
-  work.title = entry.sampleVideoTitle;
-  const representative = node('p', 'creator-representative');
-  representative.append(node('span', 'creator-work-label', '代表作'), work);
-  info.append(author, signature, representative);
-  card.append(cover, info);
-  return card;
+  attachCover(image, '/api/videos/' + encodeURIComponent(entry.coverVideoId) + '/cover', entry.title);
+  row.append(text, cover);
+  return row;
+}
+
+function creatorCard(entry) {
+  const id = encodeURIComponent(entry.id);
+  const profile = '/space/' + id;
+  const row = node('article', 'creator-row');
+  const avatar = link(profile, null, 'creator-avatar');
+  avatar.setAttribute('aria-label', entry.name + ' 的个人主页');
+  const image = node('img');
+  image.alt = '';
+  image.loading = 'lazy';
+  image.onerror = () => avatar.replaceChildren(Array.from(entry.name || 'UP')[0]);
+  image.src = '/api/authors/' + id + '/avatar';
+  avatar.append(image);
+
+  const info = node('div', 'creator-info');
+  const heading = node('h2', 'creator-name');
+  heading.append(link(profile, entry.name));
+  info.append(heading);
+  const signature = entry.signature?.trim();
+  if (signature) info.append(node('p', 'creator-signature', signature));
+  const stats = node('p', 'creator-stats');
+  stats.append(node('span', '', shortCount(entry.videos) + ' 个视频'),
+    node('span', '', shortCount(entry.followers) + ' 位粉丝'));
+  const sample = node('p', 'creator-sample');
+  sample.append('代表作 · ', link('/video/' + encodeURIComponent(entry.sampleVideoId), entry.sampleVideoTitle));
+  info.append(stats, sample);
+  row.append(avatar, info);
+  return row;
 }
 
 function featuredCardCount() {
@@ -418,12 +478,13 @@ function startListScroll(grid, entries, render, emptyMessage) {
 
 async function init() {
   document.body.classList.toggle('popular-page', popularPage);
-  const withBanner = home || category || popularPage || latestPage || collectionsPage || creatorsPage;
+  const withBanner = home || category || popularPage || latestPage;
   document.body.classList.toggle('inner-page', !withBanner);
+  document.body.classList.toggle('discovery-page', discoveryPage);
   document.body.classList.toggle('channel-page', Boolean(category));
   document.body.classList.toggle('search-page', search);
   document.body.classList.toggle('author-page', Boolean(authorId));
-  document.querySelector('.channels').hidden = watching || service || Boolean(authorId);
+  document.querySelector('.channels').hidden = watching || service || discoveryPage || Boolean(authorId);
   document.querySelector('.channel-links a[href="' + path + '"]')?.setAttribute('aria-current', 'page');
   el('author-profile').hidden = !authorId;
   document.querySelector('.feed').hidden = watching || service || Boolean(authorId);
@@ -448,7 +509,10 @@ async function init() {
     el('feed-toolbar').hidden = true;
     return loadPopular();
   }
-  if (collectionsPage || creatorsPage) return Promise.all([loadDiscovery(), loadCategories()]);
+  if (discoveryPage) {
+    setupChannelNavigation(true);
+    return Promise.all([loadDiscovery(), loadCategories()]);
+  }
   const title = category ? '分区视频' : latestPage ? '最新发布' : '推荐视频';
   el('feed-title').textContent = title;
   if (!home) document.title = title + ' - dilidili';
@@ -473,7 +537,7 @@ async function init() {
   return loadCategories();
 }
 
-function setupChannelNavigation() {
+function setupChannelNavigation(alwaysPinned = false) {
   const bar = document.querySelector('.navbar');
   const banner = document.querySelector('.banner');
   const homeLink = bar.querySelector('.home-link');
@@ -530,6 +594,10 @@ function setupChannelNavigation() {
     if (!stuck) setOpen(false);
     bar.classList.toggle('channel-nav-stuck', stuck);
   };
+  if (alwaysPinned) {
+    pin(true);
+    return;
+  }
   pin(banner.getBoundingClientRect().bottom <= 0);
   const observer = new IntersectionObserver(([entry]) => pin(entry.boundingClientRect.bottom <= 0));
   observer.observe(banner);
@@ -620,7 +688,7 @@ async function loadCategories() {
       if (item.id === category) {
         el('feed-title').textContent = item.name;
         if (category) {
-          el('feed-title').prepend(node('span', 'category-symbol', categorySymbols[item.name] || '✦'));
+          el('feed-title').prepend(categoryIcon(item.name));
         }
         document.title = item.name + ' - dilidili';
         a.setAttribute('aria-current', 'page');
@@ -632,9 +700,7 @@ async function loadCategories() {
       menu.replaceChildren(...categories.map(({ id, name }) => {
         const row = node('li');
         const item = link('/channel/' + encodeURIComponent(id));
-        const symbol = node('span', 'channel-nav-icon', categorySymbols[name] || '✦');
-        symbol.setAttribute('aria-hidden', 'true');
-        item.append(symbol, name);
+        item.append(categoryIcon(name), name);
         if (id === category) item.setAttribute('aria-current', 'page');
         row.append(item);
         return row;
