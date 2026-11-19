@@ -111,10 +111,30 @@ function loadSearch() {
     if (type !== 'user') row.append(follow);
     return row;
   };
-  const paginate = (query, page, hasMore) => {
-    if (page) pagination.append(resultLink(query, { page: page - 1 }, '上一页', 'secondary'));
-    if (page || hasMore) pagination.append(node('span', '', '第 ' + (page + 1) + ' 页'));
-    if (hasMore) pagination.append(resultLink(query, { page: page + 1 }, '下一页', 'secondary'));
+  const pageSize = 20;
+  const paginate = (query, page, total) => {
+    const pages = Math.min(10001, Math.ceil(total / pageSize));
+    if (pages <= 1) return;
+    const current = Math.min(pages, page + 1);
+    const step = (label, number) => {
+      if (number >= 1 && number <= pages) return resultLink(query, { page: number - 1 }, label, 'search-page-step');
+      const disabled = node('span', 'search-page-step', label);
+      disabled.setAttribute('aria-disabled', 'true');
+      return disabled;
+    };
+    pagination.append(step('上一页', current - 1));
+    for (const number of searchPageNumbers(current, pages)) {
+      if (number === null) {
+        const gap = node('span', 'search-page-gap', '…');
+        gap.setAttribute('aria-hidden', 'true');
+        pagination.append(gap);
+        continue;
+      }
+      const item = resultLink(query, { page: number - 1 }, number, 'search-page-number');
+      if (number === current) item.setAttribute('aria-current', 'page');
+      pagination.append(item);
+    }
+    pagination.append(step('下一页', current + 1));
   };
   const updateCounts = (summary) => {
     for (const [key, count] of [['video', summary.totalVideos], ['user', summary.totalUsers]]) {
@@ -190,17 +210,17 @@ function loadSearch() {
     const summaryData = summary();
     try {
       if (showUsers) {
-        const result = await api('/search?' + new URLSearchParams({ q: keyword, tag, userSort: order, page, size: 20 }));
+        const result = await api('/search?' + new URLSearchParams({ q: keyword, tag, userSort: order, page, size: pageSize }));
         if (request !== latestRequest) return;
         updateCounts(result);
         users.replaceChildren(...result.users.map((user) => userCard(user, type)));
         users.hidden = !result.users.length;
         status(result.users.length ? '' : '没有找到相关用户，试试其他关键词');
-        paginate(query, page, result.hasMore);
+        paginate(query, page, result.totalUsers);
         return;
       }
 
-      const videoQuery = new URLSearchParams({ q: keyword, tag, sort: order, page, size: 20 });
+      const videoQuery = new URLSearchParams({ q: keyword, tag, sort: order, page, size: pageSize, includeTotal: true });
       if (categoryId) videoQuery.set('categoryId', categoryId);
       const [videos, related] = await Promise.all([
         api('/videos?' + videoQuery),
@@ -220,7 +240,7 @@ function loadSearch() {
         return result;
       }));
       status(videos.items.length || users.childElementCount ? '' : '没有找到相关结果，试试其他关键词');
-      paginate(query, page, videos.hasMore);
+      paginate(query, page, videos.totalVideos);
     } catch {
       if (request !== latestRequest) return;
       grid.replaceChildren();
@@ -259,4 +279,12 @@ function loadSearch() {
     setFiltersVisible(false);
   });
   return initial;
+}
+
+function searchPageNumbers(current, total) {
+  const range = (start, end) => Array.from({ length: end - start + 1 }, (_, index) => start + index);
+  if (total <= 9) return range(1, total);
+  if (current <= 5) return [...range(1, 7), null, total];
+  if (current >= total - 4) return [1, null, ...range(total - 6, total)];
+  return [1, null, ...range(current - 2, current + 2), null, total];
 }

@@ -26,7 +26,9 @@ $java = if ($env:JAVA_HOME) { Join-Path $env:JAVA_HOME 'bin/java.exe' } else { '
 
 $env:BILI_DB_USER = $DbUser
 $env:BILI_PORT = "$Port"
-$askedForPassword = -not (Test-Path Env:BILI_DB_PASSWORD) -and -not (Test-Path -LiteralPath '.local/application.properties')
+$hasLocalConfig = (Test-Path -LiteralPath '.local/application.properties') -or
+    (Test-Path -LiteralPath '.local/application.override.properties')
+$askedForPassword = -not (Test-Path Env:BILI_DB_PASSWORD) -and -not $hasLocalConfig
 if ($askedForPassword) {
     $secure = Read-Host '请输入 MySQL 密码（输入不会显示）' -AsSecureString
     $env:BILI_DB_PASSWORD = [System.Net.NetworkCredential]::new('', $secure).Password

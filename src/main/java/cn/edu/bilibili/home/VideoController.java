@@ -53,14 +53,15 @@ class VideoController {
                      @RequestParam(defaultValue = "") String tag,
                      @RequestParam(defaultValue = "recommend") MysqlVideoCatalog.Sort sort,
                      @RequestParam(defaultValue = "0") int page,
-                     @RequestParam(defaultValue = "20") int size) {
+                     @RequestParam(defaultValue = "20") int size,
+                     @RequestParam(defaultValue = "false") boolean includeTotal) {
         if (page < 0 || page > 10000 || size < 1 || size > 40 || q.length() > 80 || tag.length() > 80) {
             throw new ResponseStatusException(BAD_REQUEST, "分页或检索参数超出范围");
         }
         var query = new MysqlVideoCatalog.Query(validId(categoryId), validId(authorId), validId(compilationId), q.strip(), tag.strip(), sort, page * size, size + 1);
         var results = catalog.findVideos(query);
         var items = results.stream().limit(size).map(this::card).toList();
-        return new VideoPage(items, results.size() > size);
+        return new VideoPage(items, results.size() > size, includeTotal ? catalog.countVideos(query) : null);
     }
 
     @GetMapping("/search")
@@ -269,7 +270,7 @@ class VideoController {
                 video.videoPath() == null ? null : base + "/stream", video.description());
     }
 
-    record VideoPage(List<VideoCard> items, boolean hasMore) {}
+    record VideoPage(List<VideoCard> items, boolean hasMore, Long totalVideos) {}
     record VideoDetail(VideoCard video, String description, String compilation, List<String> tags,
                        boolean mustWatch, Long bestSiteRank) {}
     record VideoCard(String id, String title, String author, String authorId, String categoryId, String category,

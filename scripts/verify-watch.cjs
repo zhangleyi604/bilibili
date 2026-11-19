@@ -14,7 +14,7 @@ class Element {
   offsetWidth = 100;
   offsetHeight = 24;
   addEventListener(event, fn) { (this.listeners[event] ||= []).push(fn); }
-  emit(event) { (this.listeners[event] || []).forEach(fn => fn()); }
+  emit(event, details) { (this.listeners[event] || []).forEach(fn => fn(details)); }
   setAttribute(k,v) { this.attributes[k] = v; }
   querySelectorAll() { return []; }
   getBoundingClientRect() { return {left:100,top:100,width:500,height:281,bottom:125}; }
@@ -68,6 +68,42 @@ async function setup(storage = new Map(), collection = {title:null,items:[]}, ac
   }
   console.log('PASS: rolling clearance, equal rolling speed, fixed lanes and release on animation end');
   const t=await setup();
+  const seek = t.el('seek'), seekBar = t.el('seek-bar');
+  const previewFrame = Object.assign(t.el('seek-preview-frame'), {currentTime:0, duration:100, readyState:0, hidden:true});
+  seek.emit('pointermove', {pointerType:'mouse',clientX:350});
+  assert.equal(t.el('seek-preview-time').textContent, '00:50');
+  assert.equal(seekBar.style['--seek-hover'], '50%');
+  assert.equal(t.p.currentTime, 0, 'hovering only previews a time');
+  assert.equal(previewFrame.src, undefined, 'hovering does not fetch video frames');
+  seek.emit('pointerleave');
+  assert.equal(t.el('seek-preview').hidden, true);
+  seek.emit('pointerdown', {button:0});
+  assert.equal(seekBar.dataset.scrubbing, 'true');
+  seek.value = 95; seek.oninput();
+  assert.equal(t.p.currentTime, 95);
+  assert.equal(seekBar.dataset.direction, 'right');
+  assert.equal(seekBar.style['--seek-progress'], '95%');
+  assert.equal(previewFrame.src, '/test.mp4');
+  assert.equal(previewFrame.hidden, true);
+  previewFrame.readyState = 1; previewFrame.emit('loadedmetadata');
+  assert.equal(previewFrame.currentTime, 95);
+  previewFrame.seeking = true;
+  t.p.currentTime = 94; t.p.emit('timeupdate');
+  assert.equal(seek.value, 95, 'media updates do not override the slider during a drag');
+  seek.value = 12; seek.oninput();
+  assert.equal(t.p.currentTime, 12);
+  assert.equal(seekBar.dataset.direction, 'left');
+  assert.equal(previewFrame.currentTime, 95, 'only one preview seek runs at a time');
+  previewFrame.seeking = false; previewFrame.readyState = 2; previewFrame.emit('seeked');
+  assert.equal(previewFrame.currentTime, 12);
+  previewFrame.emit('seeked');
+  assert.equal(previewFrame.hidden, false);
+  t.pageEvent('pointerup');
+  assert.equal(previewFrame.hidden, true);
+  assert.equal(seekBar.dataset.scrubbing, undefined);
+  assert.equal(seekBar.dataset.direction, undefined);
+  t.p.currentTime = 0; t.p.emit('timeupdate');
+  assert.equal(seekBar.style['--seek-progress'], '0%');
   assert.equal(t.el('video-meta').children.length,3);
   const decorated = await setup(new Map(), undefined, {mustWatch:true,bestSiteRank:6});
   const [mustWatchBadge, rankBadge] = decorated.el('video-meta').children;
