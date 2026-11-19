@@ -1,8 +1,8 @@
 .author-page{--space-blue:#62ace2}
 .author-page .masthead{z-index:2}
-.author-page .navbar{position:absolute;color:white;border:0;background:linear-gradient(#0006,transparent)}
+.inner-page.author-page .navbar{position:absolute;color:white;border:0;background:linear-gradient(#15263570,transparent)}
 .author-page .layout{width:100%;max-width:none;padding-top:0}
-.space-cover{position:relative;height:clamp(180px,12.8vw,240px);display:flex;align-items:flex-end;justify-content:space-between;gap:24px;padding:0 max(4%,24px) 18px;background:#799baf url('/assets/banner.webp') center/cover;color:white}
+.space-cover{position:relative;min-height:clamp(196px,12vw,220px);display:flex;align-items:flex-end;justify-content:space-between;gap:24px;padding:72px max(4%,24px) 18px;background:#799baf url('/assets/space-cover.png') center/cover no-repeat;color:white}
 .space-cover::before{content:"";position:absolute;inset:0;background:linear-gradient(transparent 40%,#0006);pointer-events:none}
 .space-identity,.space-actions{position:relative;display:flex;align-items:center;gap:20px}
 .author-avatar{display:grid;place-items:center;flex:none;width:72px;height:72px;border:3px solid #ffffffb3;border-radius:50%;background:#a8cde4;color:white;font-size:30px;overflow:hidden}
