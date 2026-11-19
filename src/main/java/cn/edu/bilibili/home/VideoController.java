@@ -28,6 +28,7 @@ import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 @RestController
 @RequestMapping("/api")
 class VideoController {
+    private static final int WEEKLY_RANK_LIMIT = 10;
     private final MysqlVideoCatalog catalog;
     private final Path mediaRoot;
     private final OssMedia oss;
@@ -117,7 +118,7 @@ class VideoController {
 
     @GetMapping("/popular/week")
     PopularIssue popularWeek(@RequestParam(required = false) String categoryId) {
-        return popularIssue("week", validId(categoryId), 10);
+        return popularIssue("week", validId(categoryId), WEEKLY_RANK_LIMIT);
     }
 
     @GetMapping("/popular/must-watch")
@@ -142,7 +143,8 @@ class VideoController {
     @GetMapping("/videos/{id}")
     VideoDetail detail(@PathVariable String id) {
         var video = find(id);
-        return new VideoDetail(card(video), video.description(), video.compilation(), catalog.tags(id));
+        return new VideoDetail(card(video), video.description(), video.compilation(), catalog.tags(id),
+                catalog.isMustWatch(video.id()), catalog.bestSiteRank(video.id(), WEEKLY_RANK_LIMIT));
     }
 
     @GetMapping("/videos/{id}/comments")
@@ -268,7 +270,8 @@ class VideoController {
     }
 
     record VideoPage(List<VideoCard> items, boolean hasMore) {}
-    record VideoDetail(VideoCard video, String description, String compilation, List<String> tags) {}
+    record VideoDetail(VideoCard video, String description, String compilation, List<String> tags,
+                       boolean mustWatch, Long bestSiteRank) {}
     record VideoCard(String id, String title, String author, String authorId, String categoryId, String category,
                      int duration, long plays, long danmaku, LocalDateTime publishedAt,
                      String coverUrl, String streamUrl, String description) {}

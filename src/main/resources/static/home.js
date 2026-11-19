@@ -126,7 +126,7 @@ async function loadPopular() {
   const pages = [['/popular', '综合热门', 'popular-flame'], ['/popular/must-watch', '入站必刷', 'popular-medal'], ['/popular/rank', '排行榜', 'popular-podium']];
   for (const [url, label, symbol] of pages) {
     const tab = link(url);
-    const badge = node('span', 'popular-tab-icon');
+    const badge = node('span', 'popular-tab-icon ' + symbol);
     badge.append(icon(symbol));
     tab.append(badge, node('span', '', label));
     if (url === path) {
@@ -154,7 +154,7 @@ async function loadPopular() {
   }
   const info = node('div', 'popular-info');
   const description = node('p', 'popular-description', rank ? '按上一完整周期的有效播放排名，每周五 18:00 更新'
-    : mustWatch ? '这里是值得一看的站内精选视频' : '发现各个分区近期升温的视频');
+    : mustWatch ? '这里是值得一看的站内精选视频' : '各个领域中新奇好玩的优质内容都在这里~');
   info.append(description);
   const cutoff = node('span', 'popular-cutoff');
   if (rank) info.append(cutoff);
@@ -188,8 +188,10 @@ async function loadPopular() {
       : mustWatch ? '/popular/must-watch' : '/popular/heat';
     const result = await api(endpoint);
     if (result.cutoff) cutoff.textContent = '本期结算：' + result.cutoff.slice(0, 16).replace('T', ' ');
-    startListScroll(grid, result.items, popularCard, rank && result.cutoff ? '本期暂无有效播放记录'
-      : mustWatch ? '暂无入选视频' : '暂无上榜视频');
+    const emptyMessage = rank
+      ? (result.cutoff ? '此分区本期暂无上榜视频' : '排行榜尚未发布')
+      : (mustWatch ? '暂无入选视频' : '暂无上榜视频');
+    startListScroll(grid, result.items, popularCard, emptyMessage);
   } catch {
     status('热门加载失败，请刷新重试');
   }
@@ -205,12 +207,16 @@ function popularCard({ video, score, position, reason }) {
   img.loading = 'lazy';
   cover.append(img);
   attachCover(img, video.coverUrl, video.category);
-  if (rank) cover.append(node('span', 'popular-rank popular-rank-' + position, position));
+  if (rank) {
+    const place = node('span', 'popular-rank popular-rank-' + position, position);
+    place.title = '第 ' + position + ' 名';
+    cover.append(place);
+  }
   const content = node('div', 'popular-card-content');
   const title = node('h2', 'popular-card-title');
   title.append(link(url, video.title));
   const meta = node('div', 'popular-card-meta');
-  if (!rank && !reason && score != null) meta.append(node('span', 'popular-label', '热度 ' + Number(score).toFixed(1)));
+  if (!rank && !reason && score != null) meta.append(node('span', 'popular-label popular-heat', '热度 ' + Number(score).toFixed(1)));
   const author = link('/space/' + encodeURIComponent(video.authorId), null, 'popular-card-author');
   author.append(node('span', 'up', 'UP'), node('span', '', video.author));
   const stats = node('div', 'popular-card-stats');
@@ -223,8 +229,8 @@ function popularCard({ video, score, position, reason }) {
   stats.append(plays, danmaku);
   meta.append(author, stats);
   if (reason) {
-    const label = node('span', 'popular-label popular-reason', reason);
-    label.prepend(icon('popular-medal'));
+    const label = node('span', 'popular-label popular-reason');
+    label.append(icon('popular-medal'), node('span', '', reason));
     meta.append(label);
   }
   content.append(title, meta);

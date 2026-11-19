@@ -2,6 +2,9 @@
 /.build-tools/
 /application-local.properties
 /media/
+
+.local/
+build-diagnostic.log
 __pycache__/
 /.local/data-backups/
 *.sql
