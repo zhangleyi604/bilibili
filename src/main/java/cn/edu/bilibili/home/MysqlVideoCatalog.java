@@ -39,15 +39,7 @@ class MysqlVideoCatalog {
     }
 
     List<Video> findVideos(Query query) {
-        StringBuilder sql = new StringBuilder(PUBLIC_VIDEOS);
-        if (query.authorId() != null) {
-            sql.append(" AND v.UID = CAST(:author AS UNSIGNED)");
-        }
-        if (query.compilationId() != null) sql.append(" AND v.CompilationID = CAST(:compilation AS UNSIGNED)");
-        if (query.categoryId() != null) {
-            sql.append(" AND v.CategoryID = CAST(:category AS UNSIGNED)");
-        }
-        sql.append(searchWhere(query.keyword(), query.tag()));
+        StringBuilder sql = new StringBuilder(PUBLIC_VIDEOS).append(videoFilters(query));
         sql.append(switch (query.sort()) {
             case latest -> " ORDER BY v.UploadTime DESC, v.VideoID DESC";
             case popular -> " ORDER BY Plays DESC, v.VideoID ASC";
@@ -59,7 +51,27 @@ class MysqlVideoCatalog {
                     ? " ORDER BY CRC32(CONCAT(v.VideoID, ':', :day)), v.VideoID ASC"
                     : " ORDER BY (v.VideoTitle = :q) DESC, (LOCATE(:q, v.VideoTitle) > 0) DESC, Plays DESC, v.VideoID ASC";
         }).append(" LIMIT :limit OFFSET :offset");
-        var statement = jdbc.sql(sql.toString()).param("limit", query.limit()).param("offset", query.offset());
+        var statement = bindVideoFilters(jdbc.sql(sql.toString()), query)
+                .param("limit", query.limit()).param("offset", query.offset());
+        if (query.sort() == Sort.recommend && query.keyword().isEmpty()) {
+            statement.param("day", today().toString());
+        }
+        return statement.query(MysqlVideoCatalog::readVideo).list();
+    }
+
+    long countVideos(Query query) {
+        var statement = jdbc.sql("SELECT COUNT(*) FROM (" + PUBLIC_VIDEOS + videoFilters(query) + ") AS results");
+        return bindVideoFilters(statement, query).query(Long.class).single();
+    }
+
+    private static String videoFilters(Query query) {
+        return (query.authorId() == null ? "" : " AND v.UID = CAST(:author AS UNSIGNED)")
+                + (query.compilationId() == null ? "" : " AND v.CompilationID = CAST(:compilation AS UNSIGNED)")
+                + (query.categoryId() == null ? "" : " AND v.CategoryID = CAST(:category AS UNSIGNED)")
+                + searchWhere(query.keyword(), query.tag());
+    }
+
+    private static JdbcClient.StatementSpec bindVideoFilters(JdbcClient.StatementSpec statement, Query query) {
         if (query.authorId() != null) {
             statement.param("author", query.authorId());
         }
@@ -73,10 +85,7 @@ class MysqlVideoCatalog {
         if (!query.tag().isEmpty()) {
             statement.param("tag", query.tag());
         }
-        if (query.sort() == Sort.recommend && query.keyword().isEmpty()) {
-            statement.param("day", today().toString());
-        }
-        return statement.query(MysqlVideoCatalog::readVideo).list();
+        return statement;
     }
 
     private static String searchWhere(String keyword, String tag) {

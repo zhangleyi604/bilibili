@@ -8,9 +8,60 @@
   let blocked = new Set(read('bili-blocked-users', []));
   let danmaku = [], enabled = true, lastTick = performance.now(), lastVideoTime = 0, nextVideo = null, noticeTimer;
   const shown = new Set();
+  const seek = el('seek'), seekBar = el('seek-bar');
+  const seekPreview = el('seek-preview'), seekPreviewTime = el('seek-preview-time');
+  const seekPreviewFrame = el('seek-preview-frame');
+  let seekValue = Number(seek.value);
+  let previewTarget = null, seekHovered = false;
   const overlay = el('danmaku-overlay');
   const tracks = setupDanmakuTracks(overlay);
   const clock = (value) => duration(Math.floor(Number.isFinite(value) ? value : 0));
+  function updateSeek(value, time) {
+    seekValue = value;
+    seekBar.style.setProperty('--seek-progress', value + '%');
+    seek.setAttribute('aria-valuetext', clock(time) + ' / ' + clock(player.duration));
+  }
+  function finishSeek() {
+    delete seekBar.dataset.scrubbing;
+    delete seekBar.dataset.direction;
+    previewTarget = null;
+    seekPreviewFrame.hidden = true;
+    seekPreview.hidden = !seekHovered;
+  }
+  seek.addEventListener('pointerdown', event => {
+    if (event.button === 0) seekBar.dataset.scrubbing = 'true';
+  });
+  seek.addEventListener('pointermove', event => {
+    if (event.pointerType === 'touch' || !Number.isFinite(player.duration) || player.duration <= 0) return;
+    seekHovered = true;
+    if (seekBar.dataset.scrubbing) return;
+    const track = seek.getBoundingClientRect();
+    if (!track.width) return;
+    const ratio = Math.max(0, Math.min(1, (event.clientX - track.left) / track.width));
+    seekBar.style.setProperty('--seek-hover', ratio * 100 + '%');
+    seekPreviewTime.textContent = clock(ratio * player.duration);
+    seekPreview.hidden = false;
+  });
+  seek.addEventListener('pointerleave', () => {
+    seekHovered = false;
+    if (!seekBar.dataset.scrubbing) seekPreview.hidden = true;
+  });
+  function updatePreviewFrame() {
+    if (previewTarget === null || seekPreviewFrame.readyState < 1 || !Number.isFinite(seekPreviewFrame.duration)
+        || seekPreviewFrame.seeking || seekPreviewFrame.error) return;
+    const time = Math.min(previewTarget, Math.max(0, seekPreviewFrame.duration - 0.05));
+    if (Math.abs(seekPreviewFrame.currentTime - time) > 0.04) {
+      seekPreviewFrame.currentTime = time;
+    } else if (seekPreviewFrame.readyState >= 2) {
+      seekPreviewFrame.hidden = false;
+    }
+  }
+  for (const event of ['loadedmetadata', 'loadeddata', 'seeked']) seekPreviewFrame.addEventListener(event, updatePreviewFrame);
+  seekPreviewFrame.addEventListener('error', () => { seekPreviewFrame.hidden = true; });
+  window.addEventListener('pointerup', finishSeek);
+  window.addEventListener('pointercancel', finishSeek);
+  seek.addEventListener('keyup', finishSeek);
+  seek.addEventListener('blur', finishSeek);
   const notice = (message) => { el('control-notice').textContent = message; el('control-notice').hidden = false; clearTimeout(noticeTimer); noticeTimer = setTimeout(() => el('control-notice').hidden = true, 2500); };
   let activeDanmaku = null, activeLine = null, actionTimer;
   function hideDanmakuActions() {
@@ -92,9 +143,9 @@
   });
   player.addEventListener('timeupdate', () => {
     el('play-time').textContent = clock(player.currentTime) + ' / ' + clock(player.duration);
-    if (Number.isFinite(player.duration)) {
-      el('seek').value = player.currentTime / player.duration * 100;
-      el('seek').setAttribute('style', '--seek-progress:' + el('seek').value + '%');
+    if (!seekBar.dataset.scrubbing && Number.isFinite(player.duration) && player.duration > 0) {
+      seek.value = player.currentTime / player.duration * 100;
+      updateSeek(Number(seek.value), player.currentTime);
     }
     if (!enabled || player.seeking || activeLine) return;
     let placed = 0;
@@ -120,7 +171,22 @@
   player.addEventListener('loadedmetadata', () => { el('play-time').textContent = clock(player.currentTime) + ' / ' + clock(player.duration); });
   player.addEventListener('seeking', () => { clearOnscreenDanmaku(); shown.clear(); lastTick = performance.now(); });
   player.addEventListener('seeked', () => { lastVideoTime = player.currentTime; lastTick = performance.now(); });
-  el('seek').oninput = () => { if (Number.isFinite(player.duration)) { player.currentTime = player.duration * el('seek').value / 100; el('seek').setAttribute('style', '--seek-progress:' + el('seek').value + '%'); } };
+  seek.oninput = () => {
+    if (!Number.isFinite(player.duration) || player.duration <= 0) return;
+    const value = Number(seek.value);
+    if (value !== seekValue) seekBar.dataset.direction = value > seekValue ? 'right' : 'left';
+    player.currentTime = player.duration * value / 100;
+    if (seekBar.dataset.scrubbing) {
+      seekBar.style.setProperty('--seek-hover', value + '%');
+      seekPreview.hidden = false;
+      previewTarget = player.currentTime;
+      const source = player.currentSrc || player.src;
+      if (source && !seekPreviewFrame.src) seekPreviewFrame.src = source;
+      updatePreviewFrame();
+    }
+    if (!seekPreview.hidden) seekPreviewTime.textContent = clock(player.currentTime);
+    updateSeek(value, player.currentTime);
+  };
   player.addEventListener('ratechange', () => { if (player.playbackRate !== 1) player.playbackRate = 1; });
   el('volume').oninput = e => { player.volume = Number(e.target.value); player.muted = false; el('volume-value').textContent = Math.round(player.volume * 100); };
   player.addEventListener('volumechange', () => { el('mute-toggle').dataset.muted = String(player.muted || player.volume === 0); el('mute-toggle').setAttribute('aria-label', player.muted ? '取消静音' : '静音'); el('volume-value').textContent = player.muted ? '0' : Math.round(player.volume * 100); el('volume').value = player.muted ? 0 : player.volume; });
@@ -165,11 +231,11 @@
   const pip = async () => { if (!watchPreferences.nativePip()) { shell.classList.toggle('mini-player'); return; } try { if (!document.pictureInPictureEnabled) return notice('当前浏览器不支持画中画'); if (document.pictureInPictureElement) await document.exitPictureInPicture(); else await player.requestPictureInPicture(); } catch { notice('请先播放视频再开启画中画'); } };
   el('pip-toggle').onclick = pip; el('pip-top').onclick = pip;
   const wide = () => el('video-page').classList.toggle('wide-mode'); el('wide-top').onclick = wide;
-  const wakeFullscreenControls = setupFullscreenIdle(shell);
+  const wakePlayerControls = setupPlayerControlsIdle(shell);
   const syncFullscreenLayout = () => {
     const fullscreen = document.fullscreenElement === shell || shell.classList.contains('web-full');
     shell.classList.toggle('fullscreen-layout', fullscreen);
-    wakeFullscreenControls();
+    wakePlayerControls();
     if (fullscreen) el('fullscreen-danmaku-slot').append(el('danmaku-compose'));
     else el('danmaku-compose-home').after(el('danmaku-compose'));
     el('fullscreen-toggle').setAttribute('data-tooltip', fullscreen ? '退出全屏 (f)' : '进入全屏 (f)');
@@ -269,8 +335,7 @@
   player.addEventListener('ended', () => { if (el('autoplay-next').checked && (collectionNext || nextVideo) && watched < 30) location.assign('/video/' + (collectionNext || nextVideo).id); });
 }
 
-// Fullscreen controls respond to activity, rather than staying visible on hover.
-function setupFullscreenIdle(shell) {
+function setupPlayerControlsIdle(shell) {
   let timer;
   const interacting = () => Array.from(shell.querySelectorAll('.hover-panel')).some(panel => {
     const style = getComputedStyle(panel);
@@ -278,14 +343,15 @@ function setupFullscreenIdle(shell) {
   });
   function wake() {
     clearTimeout(timer);
-    shell.classList.remove('fullscreen-idle');
-    if (!shell.classList.contains('fullscreen-layout')) return;
+    shell.classList.remove('fullscreen-idle', 'controls-idle');
+    if (shell.classList.contains('scroll-mini')) return;
+    const fullscreen = shell.classList.contains('fullscreen-layout');
     timer = setTimeout(() => {
-      if (interacting()) { wake(); return; }
-      shell.classList.add('fullscreen-idle');
-    }, 3000);
+      if (interacting() || shell.querySelectorAll('.seek:active, .player-controls :focus-visible, .trial-tip :focus-visible').length) { wake(); return; }
+      shell.classList.add(fullscreen ? 'fullscreen-idle' : 'controls-idle');
+    }, 2000);
   }
-  for (const event of ['pointermove', 'pointerdown', 'keydown', 'focusin', 'focusout']) shell.addEventListener(event, wake);
+  for (const event of ['pointerenter', 'pointermove', 'pointerdown', 'keydown', 'focusin', 'focusout']) shell.addEventListener(event, wake);
   window.addEventListener('pagehide', () => clearTimeout(timer), { once:true });
   return wake;
 }

@@ -6,20 +6,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>dilidili · 第二组课程项目</title>
   <link rel="stylesheet" href="/home.css?v=35">
-  <link rel="stylesheet" href="/watch.css?v=18">
+  <link rel="stylesheet" href="/watch.css?v=23">
   <link rel="stylesheet" href="/watch-fullscreen.css?v=3">
   <link rel="stylesheet" href="/banner-leaves.css?v=1">
   <script src="/banner-leaves.js?v=3" defer></script>
   <link rel="stylesheet" href="/watch-comments.css?v=9">
   <link rel="stylesheet" href="/space.css?v=10">
   <script src="/space.js?v=5" defer></script>
-  <link rel="stylesheet" href="/search.css?v=4">
-  <script src="/search.js?v=4" defer></script>
+  <link rel="stylesheet" href="/search.css?v=6">
+  <script src="/search.js?v=5" defer></script>
   <script src="/watch-preferences.js?v=7" defer></script>
   <script src="/watch-sidebar.js?v=2" defer></script>
   <script src="/viewer-presence.js?v=1" defer></script>
   <script src="/watch-comments.js?v=7" defer></script>
-  <script src="/watch.js?v=18" defer></script>
+  <script src="/watch.js?v=23" defer></script>
   <script src="/home.js?v=36" defer></script>
   <script src="/login.js?v=3" defer></script>
 </head>
@@ -165,7 +165,21 @@
           <button id="big-play" class="big-play" aria-label="播放" data-tooltip="播放"><svg class="watch-icon " aria-hidden="true"><use href="/assets/watch-icons.svg#big-play"/></svg></button>
           <div id="trial-ended" class="trial-ended" hidden><strong>试看已结束，登录后继续观看</strong><button data-login="登录" data-login-only>立即登录 / 注册</button></div>
           <div class="player-controls">
-            <input id="seek" class="seek" type="range" min="0" max="100" step="0.1" value="0" aria-label="播放进度">
+            <div id="seek-bar" class="seek-bar">
+              <input id="seek" class="seek" type="range" min="0" max="100" step="0.1" value="0" aria-label="播放进度">
+              <span class="seek-marker-track" aria-hidden="true">
+                <svg class="seek-marker" viewBox="0 0 24 24">
+                  <path d="m7 2 4 5m6-5-4 5" fill="none" stroke="#25343e" stroke-width="2"/>
+                  <rect x="3" y="7" width="18" height="15" rx="4" fill="#fff" stroke="#25343e" stroke-width="2"/>
+                  <path class="seek-eyes" d="M9 13v3m6-3v3" stroke="#25343e" stroke-width="2.2"/>
+                </svg>
+              </span>
+              <span id="seek-preview" class="seek-preview" aria-hidden="true" hidden>
+                <span class="seek-preview-pointer"></span>
+                <video id="seek-preview-frame" class="seek-preview-frame" muted playsinline preload="metadata" hidden></video>
+                <span id="seek-preview-time" class="seek-preview-time"></span>
+              </span>
+            </div>
             <div class="control-row"><button id="fullscreen-prev" class="fullscreen-only" data-tooltip="上一集" aria-label="上一集"><svg class="watch-icon" aria-hidden="true"><use href="/assets/watch-icons.svg#previous"/></svg></button><button id="play-toggle" aria-label="播放或暂停"><svg class="watch-icon when-paused" aria-hidden="true"><use href="/assets/watch-icons.svg#play"/></svg><svg class="watch-icon when-playing" aria-hidden="true"><use href="/assets/watch-icons.svg#pause"/></svg></button><button id="fullscreen-next" class="fullscreen-only" data-tooltip="下一集" aria-label="下一集"><svg class="watch-icon" aria-hidden="true"><use href="/assets/watch-icons.svg#next"/></svg></button><span id="play-time">00:00 / 00:00</span><div id="fullscreen-danmaku-slot"></div><span class="control-spacer"></span>
               <button id="quality" title="当前使用原始视频清晰度">自动</button><div id="episodes-control" class="control-popover fullscreen-only"><button id="fullscreen-episodes" aria-haspopup="true">选集</button><div id="fullscreen-collection" class="fullscreen-collection hover-panel"><strong>选集</strong><div id="fullscreen-collection-list">当前视频未加入合集</div></div></div>
               <div id="speed-control" class="control-popover"><button id="playback-rate" aria-label="倍速，登录可享" aria-haspopup="true">倍速</button><div class="hover-panel login-feature-panel"><strong>倍速</strong><button class="panel-login" data-login="倍速" data-login-only>登录可享</button></div></div>
