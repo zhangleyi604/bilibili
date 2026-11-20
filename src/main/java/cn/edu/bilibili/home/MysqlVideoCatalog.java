@@ -144,7 +144,7 @@ class MysqlVideoCatalog {
     List<Compilation> compilations(String authorId) {
         return jdbc.sql("""
                 SELECT c.CompilationID, c.CompilationTitle, COUNT(v.VideoID) AS Videos
-                FROM compilationtable c LEFT JOIN videotable v ON v.CompilationID = c.CompilationID
+                FROM compilationtable c JOIN videotable v ON v.CompilationID = c.CompilationID
                   AND v.UID = c.UID AND v.VideoStatus = 'published' AND v.VisibleStatus = 'public'
                 WHERE c.UID = CAST(:id AS UNSIGNED)
                 GROUP BY c.CompilationID, c.CompilationTitle ORDER BY c.CompilationID
